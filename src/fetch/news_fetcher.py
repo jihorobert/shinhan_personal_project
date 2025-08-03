@@ -12,14 +12,16 @@ NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
 # query: 검색어, from_date: 시작 날짜,
 # to_date: 종료 날짜, num_articles: 가져올 기사 수
 # 각 기사의 title과 description을 포함한 리스트를 반환
-def get_latest_news(query, from_date, to_date, num_articles=5):
+def get_latest_news(query, from_date, to_date, num_articles=10):
     url = (
         f'https://newsapi.org/v2/everything'
         f'?q={query}'
         f'&from={from_date}'  
         f'&to={to_date}'      
         f'&language=ko'       
-        f'&sortBy=publishedAt'
+        # f'&sortBy=publishedAt'
+        f'&sortBy=relevancy'
+        # f'&sortBy=popularity'
         f'&apiKey={NEWSAPI_KEY}'
     )
     response = requests.get(url)
@@ -38,4 +40,4 @@ def get_latest_news(query, from_date, to_date, num_articles=5):
     return result_list
         
 # Example usage
-# print(get_latest_news('삼성', '2025-07-27', '2025-08-02'))
+print(get_latest_news('삼성전자', '2025-07-27', '2025-08-02'))
