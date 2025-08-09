@@ -11,12 +11,21 @@
 
 ## 🚀 설치 및 설정
 
-### 1. 의존성 설치
+### 1. 가상환경 설정 (권장)
 ```bash
-pip install -r requirements.txt
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 ```
 
-### 2. 환경변수 설정
+### 2. 의존성 설치
+```bash
+pip install -r requirements.txt
+
+# yfinance 관련 오류가 발생하는 경우 최신 버전으로 업그레이드
+pip install yfinance --upgrade --no-cache-dir
+```
+
+### 3. 환경변수 설정
 `.env` 파일을 생성하고 다음 API 키들을 설정하세요:
 
 ```env
@@ -116,6 +125,24 @@ shinhan_personal_project/
 2. **모듈 임포트 오류**: `pip install -r requirements.txt` 재실행
 3. **주가 데이터 없음**: 종목명이 지원 목록에 있는지 확인
 4. **뉴스 데이터 없음**: 검색 기간을 늘려보거나 다른 키워드 사용
+
+### yfinance 관련 오류 해결
+**"Failed to get ticker" 또는 "Expecting value: line 1 column 1" 오류가 발생하는 경우:**
+
+```bash
+# yfinance를 최신 버전으로 업그레이드
+pip install yfinance --upgrade --no-cache-dir
+
+# 또는 가상환경에서
+source venv/bin/activate
+pip install yfinance --upgrade --no-cache-dir
+```
+
+이 명령어는 다음과 같은 문제들을 해결합니다:
+- Yahoo Finance API 접근 문제
+- 한국 주식 티커 심볼 인식 오류
+- JSON 파싱 오류
+- API 응답 형식 변경으로 인한 오류
 
 ## 📝 라이선스
 

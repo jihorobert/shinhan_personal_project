@@ -1,5 +1,9 @@
 # 주가정보 fetch 모듈
 # yfinance api 사용
+# 
+# 주의: yfinance 버전 0.2.65 이상 권장
+# 이전 버전에서 "Failed to get ticker" 또는 "Expecting value" 오류 발생 시
+# pip install yfinance --upgrade --no-cache-dir 실행
 
 import yfinance as yf
 import pandas as pd
@@ -57,6 +61,10 @@ def get_stock_data(company_name, period='1mo', interval='1d'):
     
     Returns:
     - JSON 형태의 주가 데이터
+    
+    Note:
+    - yfinance 0.2.65+ 버전에서 안정적으로 동작
+    - 이전 버전에서 오류 발생 시 yfinance 업그레이드 필요
     """
     try:
         # 티커 심볼 가져오기
