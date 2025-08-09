@@ -38,6 +38,6 @@ def get_latest_news(query, from_date, to_date, num_articles=10):
     
     result_list = json.dumps(result_list, ensure_ascii=False, indent=2)
     return result_list
-        
+
 # Example usage
-print(get_latest_news('삼성전자', '2025-07-27', '2025-08-02'))
+# print(get_latest_news('삼성전자', '2025-07-27', '2025-08-02'))
