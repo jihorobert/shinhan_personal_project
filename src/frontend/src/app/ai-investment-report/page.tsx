@@ -1,57 +1,57 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { 
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
   ArrowLeftIcon,
   SparklesIcon,
   ClockIcon,
   DocumentTextIcon,
   CheckCircleIcon,
   BuildingOfficeIcon,
-  ArrowDownTrayIcon
-} from '@heroicons/react/24/outline'
-import { Company, ReportSummary, ReportResult } from '@/types'
+  ArrowDownTrayIcon,
+} from '@heroicons/react/24/outline';
+import { Company, ReportSummary, ReportResult } from '@/types';
 
 export default function AIInvestmentReport() {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [reportGenerated, setReportGenerated] = useState(false)
-  const [companyName, setCompanyName] = useState('')
-  const [supportedCompanies, setSupportedCompanies] = useState<Company[]>([])
-  const [reportResult, setReportResult] = useState<ReportResult | null>(null)
-  const [error, setError] = useState('')
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reportGenerated, setReportGenerated] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [supportedCompanies, setSupportedCompanies] = useState<Company[]>([]);
+  const [reportResult, setReportResult] = useState<ReportResult | null>(null);
+  const [error, setError] = useState('');
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
 
   // 지원되는 기업 목록 가져오기
   useEffect(() => {
     const fetchSupportedCompanies = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/supported-companies')
+        const response = await fetch('http://localhost:5001/api/supported-companies');
         if (response.ok) {
-          const data = await response.json()
-          setSupportedCompanies(data.companies || [])
+          const data = await response.json();
+          setSupportedCompanies(data.companies || []);
         } else {
-          console.error('지원 기업 목록을 가져오는데 실패했습니다.')
+          console.error('지원 기업 목록을 가져오는데 실패했습니다.');
         }
       } catch (error) {
-        console.error('지원 기업 목록을 가져오는 중 오류:', error)
+        console.error('지원 기업 목록을 가져오는 중 오류:', error);
       } finally {
-        setIsLoadingCompanies(false)
+        setIsLoadingCompanies(false);
       }
-    }
+    };
 
-    fetchSupportedCompanies()
-  }, [])
+    fetchSupportedCompanies();
+  }, []);
 
   const handleGenerateReport = async () => {
     if (!companyName.trim()) {
-      setError('기업명을 입력해주세요.')
-      return
+      setError('기업명을 입력해주세요.');
+      return;
     }
 
-    setIsGenerating(true)
-    setError('')
-    
+    setIsGenerating(true);
+    setError('');
+
     try {
       const response = await fetch('http://localhost:5001/api/generate-report', {
         method: 'POST',
@@ -59,58 +59,58 @@ export default function AIInvestmentReport() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          company_name: companyName.trim()
-        })
-      })
+          company_name: companyName.trim(),
+        }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok && data.success) {
-        setReportResult(data)
-        setReportGenerated(true)
+        setReportResult(data);
+        setReportGenerated(true);
       } else {
-        setError(data.error || data.message || '투자보고서 생성에 실패했습니다.')
+        setError(data.error || data.message || '투자보고서 생성에 실패했습니다.');
       }
     } catch (error) {
-      console.error('투자보고서 생성 중 오류:', error)
-      setError('서버와 통신 중 오류가 발생했습니다. 백엔드 서버(http://localhost:5001)가 실행 중인지 확인해주세요.')
+      console.error('투자보고서 생성 중 오류:', error);
+      setError('서버와 통신 중 오류가 발생했습니다. 백엔드 서버(http://localhost:5001)가 실행 중인지 확인해주세요.');
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   const handleDownloadPdf = async () => {
-    if (!reportResult?.pdf_file) return
+    if (!reportResult?.pdf_file) return;
 
     try {
-      const filename = reportResult.pdf_file.split('/').pop()
-      const response = await fetch(`http://localhost:5001/api/download-pdf/${filename}`)
-      
+      const filename = reportResult.pdf_file.split('/').pop();
+      const response = await fetch(`http://localhost:5001/api/download-pdf/${filename}`);
+
       if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename || 'investment_report.pdf'
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'investment_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       } else {
-        setError('PDF 다운로드에 실패했습니다.')
+        setError('PDF 다운로드에 실패했습니다.');
       }
     } catch (error) {
-      console.error('PDF 다운로드 중 오류:', error)
-      setError('PDF 다운로드 중 오류가 발생했습니다.')
+      console.error('PDF 다운로드 중 오류:', error);
+      setError('PDF 다운로드 중 오류가 발생했습니다.');
     }
-  }
+  };
 
   const resetForm = () => {
-    setReportGenerated(false)
-    setReportResult(null)
-    setCompanyName('')
-    setError('')
-  }
+    setReportGenerated(false);
+    setReportResult(null);
+    setCompanyName('');
+    setError('');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
@@ -141,9 +141,7 @@ export default function AIInvestmentReport() {
               <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <BuildingOfficeIcon className="h-8 w-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                기업 투자 보고서 생성
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">기업 투자 보고서 생성</h2>
               <p className="text-gray-600">
                 분석하고 싶은 기업명을 입력하시면 AI가 실시간 데이터를 기반으로 투자 보고서를 생성해드립니다
               </p>
@@ -159,21 +157,19 @@ export default function AIInvestmentReport() {
             {/* 입력 폼 */}
             <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">기업 정보 입력</h3>
-              
+
               {/* 기업명 입력 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  분석할 기업명
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">분석할 기업명</label>
                 <input
                   type="text"
                   placeholder="예: 삼성전자, SK하이닉스, NAVER 등"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 placeholder:text-gray-300 text-black rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !isGenerating && companyName.trim()) {
-                      handleGenerateReport()
+                      handleGenerateReport();
                     }
                   }}
                 />
@@ -184,9 +180,7 @@ export default function AIInvestmentReport() {
 
               {/* 지원 기업 목록 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  지원되는 기업 목록
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">지원되는 기업 목록</label>
                 {isLoadingCompanies ? (
                   <div className="text-center py-4">
                     <ClockIcon className="h-5 w-5 animate-spin mx-auto text-gray-400" />
@@ -243,19 +237,15 @@ export default function AIInvestmentReport() {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {reportResult?.company_name} 투자 보고서 생성 완료!
               </h2>
-              <p className="text-gray-600">
-                AI가 분석한 실시간 투자 보고서를 확인해보세요
-              </p>
+              <p className="text-gray-600">AI가 분석한 실시간 투자 보고서를 확인해보세요</p>
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center space-x-3 mb-4">
                 <DocumentTextIcon className="h-6 w-6 text-purple-600" />
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {reportResult?.company_name} 투자 분석 보고서
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">{reportResult?.company_name} 투자 분석 보고서</h3>
               </div>
-              
+
               {reportResult?.summary && (
                 <div className="space-y-4">
                   <div className="border-b border-gray-200 pb-4">
@@ -267,9 +257,11 @@ export default function AIInvestmentReport() {
                       </div>
                       <div>
                         <span className="text-gray-600">전일대비:</span>
-                        <span className={`ml-2 font-medium ${
-                          (reportResult.summary.change_percent || 0) < 0 ? 'text-red-600' : 'text-green-600'
-                        }`}>
+                        <span
+                          className={`ml-2 font-medium ${
+                            (reportResult.summary.change_percent || 0) < 0 ? 'text-red-600' : 'text-green-600'
+                          }`}
+                        >
                           {reportResult.summary.change}원 ({reportResult.summary.change_percent}%)
                         </span>
                       </div>
@@ -297,9 +289,7 @@ export default function AIInvestmentReport() {
                       </div>
                       <div className="bg-green-50 p-4 rounded-lg">
                         <h5 className="font-medium text-green-900 mb-2">분석 완료</h5>
-                        <p className="text-sm text-green-800">
-                          {reportResult.message}
-                        </p>
+                        <p className="text-sm text-green-800">{reportResult.message}</p>
                       </div>
                     </div>
                   </div>
@@ -318,7 +308,7 @@ export default function AIInvestmentReport() {
 
               <div className="mt-6 flex space-x-4">
                 {reportResult?.pdf_file && (
-                  <button 
+                  <button
                     onClick={handleDownloadPdf}
                     className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
                   >
@@ -326,13 +316,16 @@ export default function AIInvestmentReport() {
                     <span>PDF 다운로드</span>
                   </button>
                 )}
-                <button 
+                <button
                   onClick={resetForm}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
                 >
                   다른 기업 분석하기
                 </button>
-                <Link href="/" className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                <Link
+                  href="/"
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center"
+                >
                   홈으로 돌아가기
                 </Link>
               </div>
@@ -341,5 +334,5 @@ export default function AIInvestmentReport() {
         )}
       </main>
     </div>
-  )
-} 
+  );
+}

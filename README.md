@@ -1,146 +1,108 @@
-<<<<<<< HEAD
-# 신한 개인 프로젝트
 
-한국어 특화 주가 정보 및 뉴스 분석 프로젝트입니다.
 
-## 기능
+# 🏦 신한 개인프로젝트: AI 투자보고서 생성 시스템
 
-- 한국 주식 실시간 가격 정보 조회
-- KOSPI/KOSDAQ 지수 정보
-- 주식 관련 뉴스 수집
-- 투자 분석 리포트 생성
+> 실시간 주가 데이터와 뉴스 분석을 통한 AI 기반 투자보고서 자동 생성 플랫폼
 
-## 설치 및 설정
+## 📋 프로젝트 개요
 
-### 1. 의존성 설치
+한국 주식 시장의 실시간 데이터와 최신 뉴스를 분석하여 GPT-4 기반의 전문적인 투자보고서를 자동 생성하는 풀스택 웹 애플리케이션입니다. 터미널 기반에서 웹 기반으로 진화하여 사용자 친화적인 인터페이스를 제공합니다.
 
-```bash
-pip install -r requirements.txt
-```
+### 🎯 주요 특징
 
-### 2. 환경 변수 설정
+- ✅ **실시간 데이터 분석**: Yahoo Finance API를 통한 실시간 주가 정보
+- ✅ **AI 기반 분석**: OpenAI GPT-4를 활용한 전문적인 투자 의견 생성
+- ✅ **뉴스 통합 분석**: NewsAPI를 통한 최신 뉴스 기반 시장 동향 분석
+- ✅ **동적 기간 조정**: 변동성에 따른 분석 기간 자동 최적화
+- ✅ **PDF 보고서**: 차트와 분석이 포함된 전문적인 PDF 보고서 생성
+- ✅ **웹 인터페이스**: Next.js 기반의 현대적이고 직관적인 사용자 인터페이스
+- ✅ **실시간 진행 상황**: 분석 진행 상황 실시간 표시
 
-`.env` 파일을 생성하고 다음 API 키들을 설정하세요:
+## 🛠️ 기술 스택
 
-```env
-# 주가 정보 API 키들
-ALPHA_VANTAGE_KEY=your_alpha_vantage_api_key_here
+### 백엔드
+- **Python 3.8+**
+- **Flask 3.0.0** - RESTful API 서버
+- **Flask-CORS 4.0.0** - CORS 처리
+- **OpenAI API** - GPT-4 기반 AI 분석
+- **yfinance 0.2.65+** - 실시간 주가 데이터
+- **NewsAPI** - 뉴스 데이터 수집
+- **ReportLab 4.0.9** - PDF 보고서 생성
+- **Matplotlib 3.8.2** - 주가 차트 생성
+- **Pandas 2.2.2** - 데이터 처리 및 분석
+- **NumPy 1.26.4** - 수치 계산
 
-# 한국투자증권 API 키들 (선택사항)
-KIS_APP_KEY=your_kis_app_key_here
-KIS_APP_SECRET=your_kis_app_secret_here
-KIS_ACCESS_TOKEN=your_kis_access_token_here
+### 프론트엔드
+- **Next.js 15.4.5** - React 기반 프론트엔드 프레임워크
+- **React 19.1.0** - 사용자 인터페이스 라이브러리
+- **TypeScript 5** - 타입 안전성
+- **Tailwind CSS 4** - 유틸리티 기반 CSS 프레임워크
+- **Heroicons** - 아이콘 라이브러리
 
-# 뉴스 API 키
-NEWSAPI_KEY=your_newsapi_key_here
-```
+### 데이터 소스
+- **Yahoo Finance** - 실시간 주가 데이터
+- **NewsAPI** - 뉴스 데이터
+- **OpenAI GPT-4** - AI 분석 엔진
 
-### 3. API 키 발급
-
-- **Alpha Vantage**: https://www.alphavantage.co/support/#api-key
-- **NewsAPI**: https://newsapi.org/register
-- **한국투자증권 API**: https://securities.kisline.com/
-
-## 사용법
-
-### 주가 정보 조회
-
-```python
-from src.fetch.stock_fetcher import KoreanStockFetcher
-
-# Fetcher 인스턴스 생성
-fetcher = KoreanStockFetcher()
-
-# 개별 주식 정보 조회
-samsung_info = fetcher.get_stock_price_yahoo("005930")
-print(samsung_info)
-
-# 여러 주식 정보 조회
-symbols = ["005930", "000660", "035420"]  # 삼성전자, SK하이닉스, NAVER
-multiple_info = fetcher.get_multiple_stock_prices(symbols)
-
-# 시장 요약 정보
-market_summary = fetcher.get_market_summary()
-
-# 주식 관련 뉴스
-news = fetcher.get_stock_news("005930", 5)
-```
-
-### 뉴스 정보 조회
-
-```python
-from src.fetch.news_fetcher import get_latest_news
-
-# 최신 뉴스 조회
-news = get_latest_news("삼성전자", "2024-01-01", "2024-12-31", 10)
-```
-
-## 주요 한국 주식 심볼
-
-| 심볼   | 회사명           | Yahoo Finance 심볼 |
-| ------ | ---------------- | ------------------ |
-| 005930 | 삼성전자         | 005930.KS          |
-| 000660 | SK하이닉스       | 000660.KS          |
-| 035420 | NAVER            | 035420.KS          |
-| 051910 | LG화학           | 051910.KS          |
-| 006400 | 삼성SDI          | 006400.KS          |
-| 035720 | 카카오           | 035720.KS          |
-| 207940 | 삼성바이오로직스 | 207940.KS          |
-| 068270 | 셀트리온         | 068270.KS          |
-| 323410 | 카카오뱅크       | 323410.KS          |
-| 373220 | LG에너지솔루션   | 373220.KS          |
-
-## 프로젝트 구조
+## 📁 프로젝트 구조
 
 ```
-src/
-├── fetch/
-│   ├── stock_fetcher.py    # 주가 정보 수집
-│   └── news_fetcher.py     # 뉴스 정보 수집
-├── analysis/
-│   └── outlook_generator.py # 투자 분석 리포트 생성
-└── frontend/               # Next.js 웹 프론트엔드
+shinhan_personal_project/
+├── app.py                          # Flask API 서버 (메인 백엔드)
+├── requirements.txt                # Python 의존성
+├── example_usage.py               # CLI 사용 예제
+├── .env                          # 환경 변수 (생성 필요)
+├── reports/                      # 생성된 보고서 저장
+│   ├── *.json                   # JSON 형태 보고서
+│   └── *.pdf                    # PDF 형태 보고서
+├── src/
+│   ├── analysis/
+│   │   ├── analyze.py           # AI 투자보고서 생성 로직
+│   │   └── outlook_generator.py # 투자 전망 생성
+│   ├── fetch/
+│   │   ├── stock_fetcher.py     # 주가 데이터 수집
+│   │   └── news_fetcher.py      # 뉴스 데이터 수집
+│   ├── report/
+│   │   └── pdf_generator.py     # PDF 보고서 생성
+│   └── frontend/                # Next.js 웹 애플리케이션
+│       ├── package.json         # Node.js 의존성
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── page.tsx     # 메인 페이지
+│       │   │   └── ai-investment-report/
+│       │   │       └── page.tsx # 투자보고서 생성 페이지
+│       │   ├── lib/
+│       │   │   └── utils.ts     # 유틸리티 함수
+│       │   └── types/
+│       │       └── index.ts     # TypeScript 타입 정의
+│       ├── tailwind.config.ts   # Tailwind 설정
+│       └── tsconfig.json        # TypeScript 설정
+├── FRONTEND_BACKEND_사용법.md     # 웹 시스템 사용법
+├── PDF_사용법.md                 # PDF 생성 가이드
+└── README.md                     # 프로젝트 문서 (현재 파일)
 ```
-
-## 실행 예시
-
-```bash
-# 주가 정보 조회 테스트
-python src/fetch/stock_fetcher.py
-```
-=======
-# 신한 개인프로젝트: AI 투자보고서 생성 시스템
-
-주가 정보와 뉴스 데이터를 기반으로 GPT를 활용한 전문적인 투자보고서를 자동 생성하는 시스템입니다.
-
-## 📋 주요 기능
-
-- **주가 데이터 수집**: Yahoo Finance API를 통한 실시간 주가 정보 수집
-- **뉴스 데이터 수집**: NewsAPI를 통한 관련 뉴스 기사 수집  
-- **AI 분석**: OpenAI GPT-4를 활용한 전문적인 투자보고서 생성
-- **종합 분석**: 기술적 분석, 기본적 분석, 뉴스 분석을 통합한 투자 의견 제공
 
 ## 🚀 설치 및 설정
 
-### 1. 가상환경 설정 (권장)
+### 1. 사전 요구사항
+- Python 3.8 이상
+- Node.js 18 이상
+- npm 또는 yarn
+
+### 2. 저장소 클론
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+git clone <repository-url>
+cd shinhan_personal_project
 ```
 
-### 2. 의존성 설치
-```bash
-pip install -r requirements.txt
-
-# yfinance 관련 오류가 발생하는 경우 최신 버전으로 업그레이드
-pip install yfinance --upgrade --no-cache-dir
-```
-
-### 3. 환경변수 설정
-`.env` 파일을 생성하고 다음 API 키들을 설정하세요:
+### 3. 환경 변수 설정
+프로젝트 루트에 `.env` 파일을 생성하고 다음 API 키들을 설정하세요:
 
 ```env
+# OpenAI API 키 (필수)
 GPT_KEY=your_openai_api_key_here
+
+# NewsAPI 키 (필수)
 NEWSAPI_KEY=your_newsapi_key_here
 ```
 
@@ -148,114 +110,309 @@ NEWSAPI_KEY=your_newsapi_key_here
 - **OpenAI API Key**: [OpenAI Platform](https://platform.openai.com/api-keys)에서 발급
 - **NewsAPI Key**: [NewsAPI](https://newsapi.org/register)에서 무료 계정 생성 후 발급
 
-## 💻 사용법
-
-### 방법 1: 예제 스크립트 실행
+### 4. Python 의존성 설치
 ```bash
-python example_usage.py
+# 가상환경 생성 (권장)
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 의존성 설치
+pip install -r requirements.txt
+
+# yfinance 관련 오류가 발생하는 경우
+pip install yfinance --upgrade --no-cache-dir
 ```
 
-### 방법 2: 직접 모듈 사용
-```python
-from src.analysis.analyze import generate_investment_report
+### 5. Node.js 의존성 설치
+```bash
+cd src/frontend
+npm install
+```
 
+## 🖥️ 실행 방법
+
+### 웹 시스템 실행 (권장)
+
+#### 1단계: 백엔드 API 서버 실행
+프로젝트 루트 디렉토리에서:
+```bash
+python app.py
+```
+서버가 `http://localhost:5001`에서 실행됩니다.
+
+#### 2단계: 프론트엔드 개발 서버 실행
+새 터미널을 열고:
+```bash
+cd src/frontend
+npm run dev
+```
+프론트엔드가 `http://localhost:3000`에서 실행됩니다.
+
+#### 3단계: 웹 브라우저에서 사용
+1. `http://localhost:3000` 접속
+2. "AI 투자 보고서 생성" 클릭
+3. 분석하고 싶은 기업명 입력 (예: 삼성전자, SK하이닉스 등)
+4. "투자 보고서 생성하기" 버튼 클릭
+5. 1-2분 후 분석 결과 확인
+6. PDF 다운로드 버튼으로 보고서 다운로드
+
+### CLI 시스템 실행 (개발자용)
+
+```bash
 # 단일 기업 분석
-report = generate_investment_report('삼성전자')
-print(report)
+python example_usage.py
 
-# 여러 기업 분석
-from src.analysis.analyze import generate_multiple_reports
-reports = generate_multiple_reports(['삼성전자', 'SK하이닉스', 'NAVER'])
-```
-
-### 방법 3: 개별 모듈 테스트
-```bash
-# 주가 데이터만 확인
-cd src/fetch
-python stock_fetcher.py
-
-# 뉴스 데이터만 확인  
-python news_fetcher.py
-
-# 투자보고서 생성
-cd ../analysis
+# 또는 직접 모듈 실행
+cd src/analysis
 python analyze.py
 ```
 
-## 📊 투자보고서 구조
+## 🎯 주요 기능
 
-생성되는 투자보고서는 다음 섹션들을 포함합니다:
+### 1. 실시간 주가 분석
+- 현재가, 전일대비 변화율, 거래량 등 기본 정보
+- 52주 최고가/최저가, 시가총액, PER 등 상세 지표
+- 5일, 20일 이동평균선과의 관계 분석
+- 지지/저항선 수준 분석
 
-1. **종목 개요** - 기업 소개 및 현재 주가 상황
-2. **기술적 분석** - 주가 차트 패턴, 거래량, 지지/저항선 분석
-3. **기본적 분석** - 재무지표, PER, 시가총액 등 분석
-4. **뉴스 및 시장 동향** - 최근 뉴스가 주가에 미치는 영향 분석
-5. **투자 의견** - 매수/매도/보유 추천 및 근거
-6. **위험 요소** - 투자 시 주의해야 할 리스크
-7. **목표가** - 향후 3-6개월 예상 주가 범위
+### 2. 기술적 분석
+- 단기/중기/장기 추세 분석
+- 변동성 수준 및 추세 강도 계산
+- 거래량 패턴 분석
+- 52주 기준 현재 가격 위치 분석
 
-## 📁 프로젝트 구조
+### 3. 뉴스 기반 분석
+- 최신 뉴스 수집 및 분석
+- 뉴스가 주가에 미치는 영향 평가
+- 시장 심리 및 모멘텀 분석
 
-```
-shinhan_personal_project/
-├── src/
-│   ├── fetch/
-│   │   ├── stock_fetcher.py      # 주가 데이터 수집
-│   │   └── news_fetcher.py       # 뉴스 데이터 수집
-│   ├── analysis/
-│   │   └── analyze.py            # GPT 기반 투자보고서 생성
-│   └── frontend/                 # Next.js 프론트엔드 (개발 중)
-├── requirements.txt              # Python 의존성
-├── example_usage.py             # 사용 예제
-└── README.md
-```
+### 4. AI 투자보고서 생성
+- GPT-4 기반 전문적인 투자 의견
+- 매수/매도/보유 추천 및 근거
+- 위험 요소 및 주의사항
+- 목표가 및 시나리오 분석
 
-## 🎯 지원 종목
+### 5. 동적 분석 기간 조정
+- 변동성에 따른 분석 기간 자동 최적화
+- 높은 변동성: 2개월 주가, 10일 뉴스
+- 중간 변동성: 1개월 주가, 7일 뉴스
+- 낮은 변동성: 3개월 주가, 14일 뉴스
+
+### 6. PDF 보고서 생성
+- 전문적인 레이아웃의 PDF 보고서
+- 주가 차트 및 기술적 지표 시각화
+- 미래 주가 예측 차트 포함
+- 한글 폰트 지원
+
+## 📊 지원 종목
 
 현재 다음 한국 주요 기업들을 지원합니다:
 
-- 삼성전자, SK하이닉스, LG에너지솔루션
-- NAVER, 카카오, LG화학
-- 현대차, 기아, POSCO홀딩스
-- KB금융, 신한지주, LG전자
-- 삼성바이오로직스, 현대모비스, 셀트리온
-- SK텔레콤, KT&G, 한국전력
-- 삼성물산, LG디스플레이
+| 기업명 | 티커 | 업종 |
+|--------|------|------|
+| 삼성전자 | 005930.KS | 기술주 |
+| SK하이닉스 | 000660.KS | 기술주 |
+| LG에너지솔루션 | 373220.KS | 배터리 |
+| NAVER | 035420.KS | 기술주 |
+| 카카오 | 035720.KS | 기술주 |
+| LG화학 | 051910.KS | 화학 |
+| 현대차 | 005380.KS | 자동차 |
+| 기아 | 000270.KS | 자동차 |
+| POSCO홀딩스 | 005490.KS | 철강 |
+| KB금융 | 105560.KS | 금융 |
+| 신한지주 | 055550.KS | 금융 |
+| LG전자 | 066570.KS | 전자 |
+| 삼성바이오로직스 | 207940.KS | 바이오 |
+| 현대모비스 | 012330.KS | 자동차부품 |
+| 셀트리온 | 068270.KS | 바이오 |
+| SK텔레콤 | 017670.KS | 통신 |
+| KT&G | 033780.KS | 담배 |
+| 한국전력 | 015760.KS | 전력 |
+| 삼성물산 | 028260.KS | 건설 |
+| LG디스플레이 | 034220.KS | 디스플레이 |
 
-## ⚠️ 주의사항
+## 🔧 API 엔드포인트
 
-- 이 시스템은 투자 참고용으로만 사용하시기 바랍니다.
-- 실제 투자 결정은 반드시 본인의 판단과 책임 하에 이루어져야 합니다.
-- API 사용량 제한에 주의하시기 바랍니다.
-- 생성된 보고서는 `reports/` 폴더에 자동 저장됩니다.
+### GET `/api/health`
+서버 상태 확인
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T12:00:00"
+}
+```
 
-## 🔧 문제 해결
+### GET `/api/supported-companies`
+지원되는 기업 목록 조회
+```json
+{
+  "companies": [
+    {"name": "삼성전자", "ticker": "005930.KS"},
+    {"name": "SK하이닉스", "ticker": "000660.KS"}
+  ],
+  "count": 20
+}
+```
 
-### 일반적인 오류들
-1. **API 키 오류**: `.env` 파일의 API 키가 올바른지 확인
-2. **모듈 임포트 오류**: `pip install -r requirements.txt` 재실행
-3. **주가 데이터 없음**: 종목명이 지원 목록에 있는지 확인
-4. **뉴스 데이터 없음**: 검색 기간을 늘려보거나 다른 키워드 사용
+### POST `/api/generate-report`
+투자보고서 생성
+```json
+// 요청
+{
+  "company_name": "삼성전자"
+}
 
-### yfinance 관련 오류 해결
-**"Failed to get ticker" 또는 "Expecting value: line 1 column 1" 오류가 발생하는 경우:**
+// 응답
+{
+  "success": true,
+  "message": "삼성전자 투자보고서가 성공적으로 생성되었습니다.",
+  "company_name": "삼성전자",
+  "json_file": "reports/삼성전자_report_20240101_120000.json",
+  "pdf_file": "reports/삼성전자_report_20240101_120000.pdf",
+  "summary": {
+    "current_price": "75000",
+    "change": "+1000",
+    "change_percent": "+1.35",
+    "analysis_period": "1mo (주가), 7일 (뉴스)",
+    "news_count": 15
+  },
+  "timestamp": "2024-01-01T12:00:00"
+}
+```
 
+### GET `/api/download-pdf/<filename>`
+PDF 파일 다운로드
+
+## 📁 생성되는 파일
+
+보고서는 `reports/` 디렉토리에 저장됩니다:
+
+### JSON 보고서
+```
+{기업명}_report_{날짜}_{시간}.json
+```
+- 완전한 분석 데이터
+- 주가 정보, 기술적 분석, 뉴스 데이터
+- AI 생성 투자보고서 텍스트
+
+### PDF 보고서
+```
+{기업명}_report_{날짜}_{시간}.pdf
+```
+- 전문적인 레이아웃
+- 주가 차트 및 시각화
+- AI 분석 결과 정리
+
+## 🚨 주의사항 및 제한사항
+
+### ⚠️ 투자 관련 주의사항
+- **본 시스템은 투자 참고용으로만 사용하시기 바랍니다**
+- **실제 투자 결정은 반드시 본인의 판단과 책임 하에 이루어져야 합니다**
+- **AI 분석 결과는 시장 상황에 따라 부정확할 수 있습니다**
+- **과거 데이터 기반 분석이므로 미래 수익을 보장하지 않습니다**
+
+### 🔒 기술적 제한사항
+- API 사용량 제한에 주의 (OpenAI, NewsAPI)
+- 보고서 생성에 1-2분 소요
+- 네트워크 연결 필요 (실시간 데이터)
+- 한국 시장 거래 시간 외에는 데이터가 제한적일 수 있음
+
+### 📋 시스템 요구사항
+- 백엔드 서버가 먼저 실행되어야 함
+- API 키가 올바르게 설정되어야 함
+- Python 3.8+ 및 Node.js 18+ 필요
+
+## 🐛 문제 해결
+
+### 자주 발생하는 오류
+
+#### 1. "서버와 통신 중 오류가 발생했습니다"
+**해결방법:**
+- 백엔드 서버(`http://localhost:5001`)가 실행 중인지 확인
+- 터미널에서 `python app.py` 실행
+- 방화벽 설정 확인
+
+#### 2. "지원 기업 목록을 불러올 수 없습니다"
+**해결방법:**
+- 백엔드 서버 연결 상태 확인
+- `.env` 파일의 API 키 설정 확인
+- 네트워크 연결 상태 확인
+
+#### 3. yfinance 관련 오류
+**"Failed to get ticker" 또는 "Expecting value" 오류:**
 ```bash
 # yfinance를 최신 버전으로 업그레이드
 pip install yfinance --upgrade --no-cache-dir
 
-# 또는 가상환경에서
+# 가상환경에서
 source venv/bin/activate
 pip install yfinance --upgrade --no-cache-dir
 ```
 
-이 명령어는 다음과 같은 문제들을 해결합니다:
-- Yahoo Finance API 접근 문제
-- 한국 주식 티커 심볼 인식 오류
-- JSON 파싱 오류
-- API 응답 형식 변경으로 인한 오류
+#### 4. PDF 다운로드 실패
+**해결방법:**
+- 브라우저의 팝업 차단 설정 확인
+- `reports/` 디렉토리 권한 확인
+- 디스크 공간 확인
+
+#### 5. 한글 폰트 관련 오류
+**해결방법:**
+- macOS: 시스템 폰트 확인
+- Windows: `malgun.ttf` 폰트 존재 확인
+- Linux: `sudo apt-get install fonts-nanum` 실행
+
+### 성능 최적화
+
+#### 메모리 사용량 최적화
+- 대량 분석 시 배치 크기 조정
+- 차트 생성 후 메모리 해제 확인
+
+#### API 사용량 최적화
+- 동일 기업 연속 분석 시 캐싱 활용
+- 분석 기간 적절히 조정
+
+## 🔄 기존 버전과의 차이점
+
+| 구분 | CLI 버전 | 웹 버전 (현재) |
+|------|----------|----------------|
+| **인터페이스** | 터미널 명령어 | 웹 브라우저 |
+| **사용법** | `python example_usage.py` | 브라우저에서 클릭 |
+| **기업명 입력** | 키보드 직접 입력 | 웹 폼 + 지원기업 목록 |
+| **진행 상황** | 터미널 출력 | 실시간 UI 업데이트 |
+| **결과 확인** | JSON/PDF 파일 | 웹 페이지 + 다운로드 |
+| **사용자 경험** | 개발자 친화적 | 일반 사용자 친화적 |
+| **동시 사용** | 단일 사용자 | 다중 사용자 지원 |
+| **접근성** | 로컬 환경만 | 네트워크를 통한 접근 |
+
+## 🚀 향후 개발 계획
+
+### 단기 계획
+- [ ] 더 많은 한국 기업 지원
+- [ ] 실시간 알림 기능
+- [ ] 포트폴리오 분석 기능
+- [ ] 모바일 반응형 개선
+
+### 중장기 계획
+- [ ] 사용자 계정 시스템
+- [ ] 보고서 히스토리 관리
+- [ ] 커스텀 분석 지표 설정
+- [ ] 다국어 지원 (영어)
+- [ ] 클라우드 배포
 
 ## 📝 라이선스
 
 이 프로젝트는 개인 학습 및 연구 목적으로 개발되었습니다.
->>>>>>> 75031126ccee83e21527913b2a8d2c6fdbdcab30
+
+## 👨‍💻 개발자 정보
+
+- **프로젝트**: 신한 개인프로젝트
+- **개발 기간**: 2024년
+- **기술 스택**: Python, Flask, Next.js, TypeScript, AI/ML
+
+---
+
+### 📞 지원 및 문의
+
+프로젝트 관련 문의사항이나 버그 리포트는 GitHub Issues를 통해 제출해주시기 바랍니다.
+
+**🎯 프로젝트 목표**: 한국 주식 시장 분석의 민주화를 통해 개인 투자자들이 더 나은 투자 결정을 내릴 수 있도록 돕는 것입니다.
