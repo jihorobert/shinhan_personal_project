@@ -151,7 +151,7 @@ def get_supported_companies():
 
 if __name__ == '__main__':
     print("🚀 투자보고서 생성 API 서버 시작")
-    print("📍 서버 주소: http://localhost:5000")
+    print("📍 서버 주소: http://localhost:5001")
     print("📋 API 엔드포인트:")
     print("   - GET  /api/health              : 서버 상태 확인")
     print("   - GET  /api/supported-companies : 지원 기업 목록")
@@ -159,4 +159,4 @@ if __name__ == '__main__':
     print("   - GET  /api/download-pdf/<file> : PDF 다운로드")
     print("=" * 60)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

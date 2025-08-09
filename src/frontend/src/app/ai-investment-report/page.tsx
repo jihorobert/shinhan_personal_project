@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeftIcon,
@@ -10,8 +10,25 @@ import {
   CheckCircleIcon,
   BuildingOfficeIcon,
   ArrowDownTrayIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { Company, ReportSummary, ReportResult } from '@/types';
+
+// 업종별 카테고리 정의
+const COMPANY_CATEGORIES: { [key: string]: string[] } = {
+  '반도체/전자': ['삼성전자', 'SK하이닉스', '삼성SDI', 'LG전자', '삼성전기', 'LG디스플레이'],
+  '금융': ['KB금융', '신한지주', '하나금융지주', '우리금융지주', '한국금융지주', '삼성생명', '삼성화재'],
+  '자동차': ['현대차', '기아', '현대모비스', '현대글로비스', '한온시스템', '현대위아'],
+  '화학/에너지': ['LG화학', 'LG에너지솔루션', 'SK이노베이션', '한화솔루션', '롯데케미칼', 'S-Oil'],
+  'IT/게임': ['NAVER', '카카오', '엔씨소프트', '크래프톤', '넷마블', 'SK스퀘어'],
+  '건설/중공업': ['현대건설', '대우건설', 'GS건설', '현대중공업', '한국조선해양', '삼성중공업'],
+  '바이오/제약': ['삼성바이오로직스', '셀트리온', '한미사이언스', '한미약품', 'SK바이오팜'],
+  '유통/소비재': ['롯데쇼핑', 'GS리테일', '현대백화점', '현대홈쇼핑', '오리온', 'CJ제일제당'],
+  '통신': ['SK텔레콤', 'KT', 'LG유플러스'],
+  '기타': []
+};
 
 export default function AIInvestmentReport() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -21,6 +38,43 @@ export default function AIInvestmentReport() {
   const [reportResult, setReportResult] = useState<ReportResult | null>(null);
   const [error, setError] = useState('');
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
+  
+  // 검색 및 필터링 상태
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+  const [showCompanyList, setShowCompanyList] = useState(false);
+
+  // 기업 카테고리 분류 함수
+  const getCompanyCategory = (companyName: string) => {
+    for (const [category, companies] of Object.entries(COMPANY_CATEGORIES)) {
+      if (companies.includes(companyName)) {
+        return category;
+      }
+    }
+    return '기타';
+  };
+
+  // 필터링된 기업 목록
+  const filteredCompanies = useMemo(() => {
+    let filtered = supportedCompanies;
+
+    // 검색어로 필터링
+    if (searchTerm) {
+      filtered = filtered.filter(company => 
+        company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.ticker.includes(searchTerm)
+      );
+    }
+
+    // 카테고리로 필터링
+    if (selectedCategory !== '전체') {
+      filtered = filtered.filter(company => 
+        getCompanyCategory(company.name) === selectedCategory
+      );
+    }
+
+    return filtered;
+  }, [supportedCompanies, searchTerm, selectedCategory]);
 
   // 지원되는 기업 목록 가져오기
   useEffect(() => {
@@ -180,28 +234,144 @@ export default function AIInvestmentReport() {
 
               {/* 지원 기업 목록 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">지원되는 기업 목록</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    지원되는 기업 목록 ({supportedCompanies.length}개)
+                  </label>
+                  <button
+                    onClick={() => setShowCompanyList(!showCompanyList)}
+                    className="text-sm text-purple-600 hover:text-purple-700 flex items-center space-x-1"
+                  >
+                    <span>{showCompanyList ? '숨기기' : '전체 보기'}</span>
+                    <FunnelIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
                 {isLoadingCompanies ? (
-                  <div className="text-center py-4">
-                    <ClockIcon className="h-5 w-5 animate-spin mx-auto text-gray-400" />
-                    <p className="text-sm text-gray-500 mt-1">기업 목록 로딩 중...</p>
+                  <div className="text-center py-8">
+                    <ClockIcon className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+                    <p className="text-sm text-gray-500 mt-2">기업 목록 로딩 중...</p>
                   </div>
                 ) : supportedCompanies.length > 0 ? (
-                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {supportedCompanies.map((company) => (
-                        <button
-                          key={company.ticker}
-                          onClick={() => setCompanyName(company.name)}
-                          className="text-left px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        >
-                          {company.name} ({company.ticker})
-                        </button>
-                      ))}
+                  <>
+                    {/* 인기 기업 빠른 선택 */}
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-500 mb-2">인기 기업 빠른 선택</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['삼성전자', 'SK하이닉스', 'NAVER', '카카오', '현대차', 'LG에너지솔루션'].map((company) => (
+                          <button
+                            key={company}
+                            onClick={() => setCompanyName(company)}
+                            className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
+                          >
+                            {company}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+
+                    {/* 전체 기업 목록 */}
+                    {showCompanyList && (
+                      <div className="border border-gray-200 rounded-lg">
+                        <div className="p-4 bg-gray-50 border-b border-gray-200">
+                          {/* 검색 바 */}
+                          <div className="relative mb-4">
+                            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="기업명 또는 종목코드 검색..."
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            {searchTerm && (
+                              <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              >
+                                <XMarkIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* 카테고리 필터 */}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setSelectedCategory('전체')}
+                              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                                selectedCategory === '전체'
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              }`}
+                            >
+                              전체
+                            </button>
+                            {Object.keys(COMPANY_CATEGORIES).map((category) => (
+                              <button
+                                key={category}
+                                onClick={() => setSelectedCategory(category)}
+                                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                                  selectedCategory === category
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                {category}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 기업 목록 */}
+                        <div className="max-h-64 overflow-y-auto p-4">
+                          {filteredCompanies.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {filteredCompanies.map((company) => (
+                                <button
+                                  key={company.ticker}
+                                  onClick={() => {
+                                    setCompanyName(company.name);
+                                    setShowCompanyList(false);
+                                  }}
+                                  className="text-left p-3 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all group"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="font-medium text-sm text-gray-900 group-hover:text-purple-700">
+                                        {company.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {company.ticker}
+                                      </p>
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                      {getCompanyCategory(company.name)}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <p className="text-sm text-gray-500">
+                                검색 조건에 맞는 기업이 없습니다.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 결과 요약 */}
+                        <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
+                          {searchTerm || selectedCategory !== '전체' 
+                            ? `${filteredCompanies.length}개 기업이 검색되었습니다.`
+                            : `총 ${supportedCompanies.length}개 기업을 지원합니다.`
+                          }
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 text-center py-4">
                     지원 기업 목록을 불러올 수 없습니다. 백엔드 서버를 확인해주세요.
                   </p>
                 )}
