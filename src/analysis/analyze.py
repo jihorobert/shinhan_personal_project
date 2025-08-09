@@ -48,8 +48,8 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
         news_data = get_latest_news(
             query=company_name,
             from_date=start_date.strftime('%Y-%m-%d'),
-            to_date=end_date.strftime('%Y-%m-%d'),
-            num_articles=10
+            to_date=end_date.strftime('%Y-%m-%d')
+            # num_articles는 기간에 따라 자동 계산됨
         )
         news_info = json.loads(news_data)
         
