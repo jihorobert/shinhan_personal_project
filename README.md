@@ -71,7 +71,7 @@
 
 실제 시스템 작동 과정을 확인하실 수 있습니다:
 
-![Image](https://github.com/user-attachments/assets/b73ab647-3677-458c-a213-34955fd6e8c6)
+![Image](https://github.com/user-attachments/assets/56142184-75d2-421d-92d0-29c84aed0bdb)
 
 ### PDF 보고서 예시
 
