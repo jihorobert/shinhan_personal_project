@@ -116,8 +116,9 @@ def get_stock_data(company_name, period='1mo', interval='1d'):
             "historical_data": []
         }
         
-        # 히스토리컬 데이터 추가 (최근 10일)
-        recent_data = hist_data.tail(10)
+        # 히스토리컬 데이터 추가 (전체 기간 데이터)
+        # 차트 분석을 위해 더 많은 데이터 제공
+        recent_data = hist_data
         for date, row in recent_data.iterrows():
             result["historical_data"].append({
                 "date": date.strftime('%Y-%m-%d'),

@@ -114,6 +114,9 @@ class PDFReportGenerator:
         try:
             if 'historical_data' not in stock_data or not stock_data['historical_data']:
                 return None
+            
+            # 회사명 추출
+            company_name = stock_data.get('company_name', '주식')
                 
             # 한글 폰트 설정 (matplotlib용)
             import matplotlib.pyplot as plt
@@ -155,8 +158,25 @@ class PDFReportGenerator:
             # 차트 생성 (더 큰 사이즈)
             fig, ax = plt.subplots(figsize=(12, 8))
             
-            # 과거 데이터 (파란색 실선)
-            ax.plot(dates, prices, linewidth=2.5, color='#1f77b4', label='과거 주가', alpha=0.8)
+            # 회사별 고유 색상 설정
+            company_colors = {
+                '삼성전자': '#1f77b4',  # 파란색
+                'SK하이닉스': '#ff7f0e',  # 주황색
+                'LG전자': '#2ca02c',  # 녹색
+                'NAVER': '#d62728',  # 빨간색
+                '카카오': '#9467bd',  # 보라색
+                'LG화학': '#8c564b',  # 갈색
+                '현대차': '#e377c2',  # 분홍색
+                '기아': '#7f7f7f',  # 회색
+                'POSCO홀딩스': '#bcbd22',  # 올리브색
+                'KB금융': '#17becf'  # 청록색
+            }
+            
+            # 회사별 색상 또는 기본 색상 사용
+            base_color = company_colors.get(company_name, '#1f77b4')
+            
+            # 과거 데이터 (회사별 고유 색상)
+            ax.plot(dates, prices, linewidth=2.5, color=base_color, label='과거 주가', alpha=0.8)
             
             # 현재가 포인트 강조
             current_price = stock_data.get('current_price', prices[-1] if prices else 0)
@@ -170,13 +190,25 @@ class PDFReportGenerator:
                 medium_term_prices = prices[-15:] if len(prices) >= 15 else prices[-10:]  # 중기 추세
                 long_term_prices = prices[-30:] if len(prices) >= 30 else prices  # 장기 추세
                 
-                # 각 기간별 추세 계산
+                # 각 기간별 추세 계산 (회사별 특성 반영)
                 short_trend = (short_term_prices[-1] - short_term_prices[0]) / len(short_term_prices)
                 medium_trend = (medium_term_prices[-1] - medium_term_prices[0]) / len(medium_term_prices)
                 long_trend = (long_term_prices[-1] - long_term_prices[0]) / len(long_term_prices)
                 
-                # 가중 평균으로 최종 추세 결정 (단기 50%, 중기 30%, 장기 20%)
-                weighted_trend = (short_trend * 0.5) + (medium_trend * 0.3) + (long_trend * 0.2)
+                # 회사별 업종 특성을 고려한 가중치 조정
+                # 기술주는 단기 추세 비중 높임, 안정주는 장기 추세 비중 높임
+                tech_companies = ['삼성전자', 'SK하이닉스', 'NAVER', '카카오', 'LG전자']
+                stable_companies = ['한국전력', 'KT&G', '신한지주', 'KB금융']
+                
+                if company_name in tech_companies:
+                    # 기술주: 단기 변동성 높음
+                    weighted_trend = (short_trend * 0.6) + (medium_trend * 0.3) + (long_trend * 0.1)
+                elif company_name in stable_companies:
+                    # 안정주: 장기 추세 중시
+                    weighted_trend = (short_trend * 0.2) + (medium_trend * 0.4) + (long_trend * 0.4)
+                else:
+                    # 일반주: 균형적 가중치
+                    weighted_trend = (short_trend * 0.5) + (medium_trend * 0.3) + (long_trend * 0.2)
                 
                 # 추세 강도 계산 (최근 변동성 고려)
                 recent_volatility = np.std(prices[-10:])
@@ -199,7 +231,9 @@ class PDFReportGenerator:
                 future_prices = []
                 
                 # 현실적인 주가 움직임을 위한 랜덤 워크 기반 예측
-                np.random.seed(42)  # 재현 가능한 결과를 위한 시드 설정
+                # 회사별 고유한 랜덤 시드 생성 (회사명 해시 기반)
+                company_hash = hash(company_name) % 1000
+                np.random.seed(company_hash)  # 회사별 고유한 시드 사용
                 
                 # 일일 변동률 계산 (최근 20일 기준)
                 daily_returns = []
@@ -213,7 +247,13 @@ class PDFReportGenerator:
                     return_std = np.std(daily_returns)
                 else:
                     avg_return = 0
-                    return_std = 0.02  # 기본 2% 변동성
+                    # 회사별 기본 변동성 설정
+                    if company_name in tech_companies:
+                        return_std = 0.035  # 기술주: 3.5% 변동성
+                    elif company_name in stable_companies:
+                        return_std = 0.015  # 안정주: 1.5% 변동성
+                    else:
+                        return_std = 0.025  # 일반주: 2.5% 변동성
                 
                 # 추세를 반영한 일일 수익률 조정
                 trend_daily_return = dynamic_trend / current_price if current_price != 0 else 0
@@ -237,8 +277,7 @@ class PDFReportGenerator:
                 all_dates = dates + [current_date] + future_dates
                 all_prices = prices + [current_price] + future_prices
                 
-                # 과거 주가 (파란색 실선)
-                ax.plot(dates, prices, linewidth=2.5, color='#1f77b4', label='과거 주가', alpha=0.8)
+                # 과거 주가는 이미 위에서 그려짐 (중복 제거)
                 
                 # 추세 방향에 따른 색상 결정
                 if weighted_trend > 0:
@@ -260,8 +299,18 @@ class PDFReportGenerator:
                 ax.plot([current_date, future_dates[0]], [current_price, future_prices[0]], 
                        linewidth=future_line_width, color=trend_color, alpha=0.7)
                 
-                # 동적 변동성 계산 (미래 예측의 불확실성)
+                # 동적 변동성 계산 (회사별 특성 반영)
                 base_volatility = np.std(prices[-20:]) if len(prices) >= 20 else np.std(prices)
+                
+                # 회사별 변동성 배수 적용
+                if company_name in tech_companies:
+                    volatility_multiplier = 1.3  # 기술주: 변동성 30% 증가
+                elif company_name in stable_companies:
+                    volatility_multiplier = 0.7  # 안정주: 변동성 30% 감소
+                else:
+                    volatility_multiplier = 1.0  # 일반주: 기본 변동성
+                    
+                base_volatility *= volatility_multiplier
                 
                 # 시간이 지날수록 불확실성 증가
                 future_upper = []

@@ -15,7 +15,311 @@ from report.pdf_generator import generate_pdf_report_from_data
 load_dotenv()
 
 from openai import OpenAI
+import numpy as np
+
 client = OpenAI(api_key=os.getenv("GPT_KEY"))
+
+def analyze_technical_indicators(stock_info):
+    """
+    주가 데이터를 바탕으로 기술적 지표들을 분석하는 함수
+    """
+    try:
+        historical_data = stock_info.get('historical_data', [])
+        if not historical_data or len(historical_data) < 5:
+            return {
+                'short_trend': 'N/A (데이터 부족)',
+                'medium_trend': 'N/A (데이터 부족)', 
+                'long_trend': 'N/A (데이터 부족)',
+                'trend_strength': 'N/A',
+                'volatility_level': 'N/A',
+                'price_vs_ma': 'N/A',
+                'support_resistance': 'N/A',
+                'volume_ratio': 'N/A'
+            }
+        
+        # 가격 데이터 추출 (최신순으로 정렬)
+        prices = [float(data['close']) for data in historical_data]
+        volumes = [float(data.get('volume', 0)) for data in historical_data]
+        
+        current_price = stock_info.get('current_price', prices[0] if prices else 0)
+        
+        # 1. 추세 분석 (단기/중기/장기)
+        def calculate_trend(price_list, period_name):
+            if len(price_list) < 2:
+                return f"N/A (데이터 부족)"
+            
+            start_price = price_list[-1]  # 가장 오래된 가격
+            end_price = price_list[0]     # 가장 최근 가격
+            
+            if start_price == 0:
+                return "N/A (데이터 오류)"
+                
+            change_percent = ((end_price - start_price) / start_price) * 100
+            
+            if change_percent > 2:
+                return f"강한 상승세 (+{change_percent:.1f}%)"
+            elif change_percent > 0.5:
+                return f"상승세 (+{change_percent:.1f}%)"
+            elif change_percent > -0.5:
+                return f"횡보 ({change_percent:+.1f}%)"
+            elif change_percent > -2:
+                return f"하락세 ({change_percent:.1f}%)"
+            else:
+                return f"강한 하락세 ({change_percent:.1f}%)"
+        
+        short_trend = calculate_trend(prices[:5], "단기")
+        medium_trend = calculate_trend(prices[:20] if len(prices) >= 20 else prices, "중기")
+        long_trend = calculate_trend(prices, "장기")
+        
+        # 2. 추세 강도 계산
+        recent_prices = prices[:10] if len(prices) >= 10 else prices
+        if len(recent_prices) >= 3:
+            price_changes = [abs(recent_prices[i] - recent_prices[i+1]) for i in range(len(recent_prices)-1)]
+            avg_change = np.mean(price_changes)
+            price_std = np.std(recent_prices)
+            
+            if price_std > 0:
+                trend_strength_ratio = avg_change / price_std
+                if trend_strength_ratio > 1.5:
+                    trend_strength = "매우 강함"
+                elif trend_strength_ratio > 1.0:
+                    trend_strength = "강함"
+                elif trend_strength_ratio > 0.5:
+                    trend_strength = "보통"
+                else:
+                    trend_strength = "약함"
+            else:
+                trend_strength = "N/A"
+        else:
+            trend_strength = "N/A (데이터 부족)"
+        
+        # 3. 변동성 수준 분석
+        if len(prices) >= 10:
+            volatility = np.std(prices[:10]) / np.mean(prices[:10]) * 100
+            if volatility > 5:
+                volatility_level = f"높음 ({volatility:.1f}%)"
+            elif volatility > 2:
+                volatility_level = f"보통 ({volatility:.1f}%)"
+            else:
+                volatility_level = f"낮음 ({volatility:.1f}%)"
+        else:
+            volatility_level = "N/A (데이터 부족)"
+        
+        # 4. 이동평균 대비 현재가 위치
+        if len(prices) >= 20:
+            ma5 = np.mean(prices[:5])
+            ma20 = np.mean(prices[:20])
+            
+            if current_price > ma5 > ma20:
+                price_vs_ma = "강세 (현재가 > 5일선 > 20일선)"
+            elif current_price > ma5 and current_price > ma20:
+                price_vs_ma = "상승 추세 (현재가 > 이동평균선들)"
+            elif current_price < ma5 < ma20:
+                price_vs_ma = "약세 (현재가 < 5일선 < 20일선)"
+            elif current_price < ma5 and current_price < ma20:
+                price_vs_ma = "하락 추세 (현재가 < 이동평균선들)"
+            else:
+                price_vs_ma = "혼조 (이동평균선들과 교차)"
+        else:
+            price_vs_ma = "N/A (데이터 부족)"
+        
+        # 5. 지지/저항 수준 분석
+        if len(prices) >= 20:
+            recent_high = max(prices[:20])
+            recent_low = min(prices[:20])
+            current_position = (current_price - recent_low) / (recent_high - recent_low) * 100
+            
+            if current_position > 80:
+                support_resistance = f"저항선 근처 (상위 {current_position:.0f}% 구간)"
+            elif current_position < 20:
+                support_resistance = f"지지선 근처 (하위 {current_position:.0f}% 구간)"
+            else:
+                support_resistance = f"중간 구간 ({current_position:.0f}% 위치)"
+        else:
+            support_resistance = "N/A (데이터 부족)"
+        
+        # 6. 거래량 비율 분석
+        if len(volumes) >= 10:
+            recent_volume = volumes[0] if volumes[0] > 0 else 1
+            avg_volume = np.mean([v for v in volumes[:10] if v > 0])
+            
+            if avg_volume > 0:
+                volume_ratio = recent_volume / avg_volume
+                if volume_ratio > 2:
+                    volume_ratio_text = f"매우 높음 ({volume_ratio:.1f}배)"
+                elif volume_ratio > 1.5:
+                    volume_ratio_text = f"높음 ({volume_ratio:.1f}배)"
+                elif volume_ratio > 0.7:
+                    volume_ratio_text = f"보통 ({volume_ratio:.1f}배)"
+                else:
+                    volume_ratio_text = f"낮음 ({volume_ratio:.1f}배)"
+            else:
+                volume_ratio_text = "N/A"
+        else:
+            volume_ratio_text = "N/A (데이터 부족)"
+        
+        return {
+            'short_trend': short_trend,
+            'medium_trend': medium_trend,
+            'long_trend': long_trend,
+            'trend_strength': trend_strength,
+            'volatility_level': volatility_level,
+            'price_vs_ma': price_vs_ma,
+            'support_resistance': support_resistance,
+            'volume_ratio': volume_ratio_text
+        }
+        
+    except Exception as e:
+        print(f"기술적 지표 분석 중 오류: {e}")
+        return {
+            'short_trend': 'N/A (분석 오류)',
+            'medium_trend': 'N/A (분석 오류)',
+            'long_trend': 'N/A (분석 오류)',
+            'trend_strength': 'N/A',
+            'volatility_level': 'N/A',
+            'price_vs_ma': 'N/A',
+            'support_resistance': 'N/A',
+            'volume_ratio': 'N/A'
+        }
+
+def analyze_market_sentiment(stock_info):
+    """
+    시장 심리와 모멘텀을 분석하는 함수
+    """
+    try:
+        current_price = stock_info.get('current_price', 0)
+        change_percent = stock_info.get('change_percent', 0)
+        week_52_high = stock_info.get('52_week_high', 0)
+        week_52_low = stock_info.get('52_week_low', 0)
+        volume = stock_info.get('volume', 0)
+        historical_data = stock_info.get('historical_data', [])
+        
+        # 1. 전반적 모멘텀 분석
+        if isinstance(change_percent, (int, float)):
+            if change_percent > 3:
+                momentum = "매우 강한 상승 모멘텀"
+            elif change_percent > 1:
+                momentum = "상승 모멘텀"
+            elif change_percent > -1:
+                momentum = "중립적 모멘텀"
+            elif change_percent > -3:
+                momentum = "하락 모멘텀"
+            else:
+                momentum = "강한 하락 모멘텀"
+        else:
+            momentum = "N/A"
+        
+        # 2. 52주 기준 가격 위치
+        if week_52_high and week_52_low and current_price:
+            if week_52_high != week_52_low:
+                position_percent = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
+                
+                if position_percent > 90:
+                    price_position = f"52주 최고가 근처 ({position_percent:.0f}% 구간)"
+                elif position_percent > 70:
+                    price_position = f"상위 구간 ({position_percent:.0f}% 구간)"
+                elif position_percent > 30:
+                    price_position = f"중간 구간 ({position_percent:.0f}% 구간)"
+                elif position_percent > 10:
+                    price_position = f"하위 구간 ({position_percent:.0f}% 구간)"
+                else:
+                    price_position = f"52주 최저가 근처 ({position_percent:.0f}% 구간)"
+            else:
+                price_position = "52주 최고가 = 최저가"
+        else:
+            price_position = "N/A"
+        
+        # 3. 거래량 패턴 분석
+        if historical_data and len(historical_data) >= 5:
+            recent_volumes = [float(data.get('volume', 0)) for data in historical_data[:5]]
+            recent_prices = [float(data['close']) for data in historical_data[:5]]
+            
+            # 거래량과 가격 변화의 상관관계
+            price_changes = [recent_prices[i] - recent_prices[i+1] for i in range(len(recent_prices)-1)]
+            volume_changes = [recent_volumes[i] - recent_volumes[i+1] for i in range(len(recent_volumes)-1)]
+            
+            if len(price_changes) > 0 and len(volume_changes) > 0:
+                # 상승시 거래량 증가 여부
+                up_days = [i for i, pc in enumerate(price_changes) if pc > 0]
+                if up_days:
+                    up_volume_avg = np.mean([volume_changes[i] for i in up_days])
+                    if up_volume_avg > 0:
+                        volume_pattern = "상승시 거래량 증가 (건전한 상승)"
+                    else:
+                        volume_pattern = "상승시 거래량 감소 (약한 상승)"
+                else:
+                    volume_pattern = "최근 상승일 없음"
+            else:
+                volume_pattern = "N/A (데이터 부족)"
+        else:
+            volume_pattern = "N/A (데이터 부족)"
+        
+        # 4. 변동성 추세 분석
+        if historical_data and len(historical_data) >= 20:
+            recent_prices = [float(data['close']) for data in historical_data[:10]]
+            older_prices = [float(data['close']) for data in historical_data[10:20]]
+            
+            recent_volatility = np.std(recent_prices) if len(recent_prices) > 1 else 0
+            older_volatility = np.std(older_prices) if len(older_prices) > 1 else 0
+            
+            if older_volatility > 0:
+                volatility_change = (recent_volatility - older_volatility) / older_volatility * 100
+                
+                if volatility_change > 20:
+                    volatility_trend = f"변동성 급증 (+{volatility_change:.0f}%)"
+                elif volatility_change > 5:
+                    volatility_trend = f"변동성 증가 (+{volatility_change:.0f}%)"
+                elif volatility_change > -5:
+                    volatility_trend = f"변동성 안정 ({volatility_change:+.0f}%)"
+                elif volatility_change > -20:
+                    volatility_trend = f"변동성 감소 ({volatility_change:.0f}%)"
+                else:
+                    volatility_trend = f"변동성 급감 ({volatility_change:.0f}%)"
+            else:
+                volatility_trend = "N/A"
+        else:
+            volatility_trend = "N/A (데이터 부족)"
+        
+        return {
+            'momentum': momentum,
+            'price_position': price_position,
+            'volume_pattern': volume_pattern,
+            'volatility_trend': volatility_trend
+        }
+        
+    except Exception as e:
+        print(f"시장 심리 분석 중 오류: {e}")
+        return {
+            'momentum': 'N/A (분석 오류)',
+            'price_position': 'N/A (분석 오류)', 
+            'volume_pattern': 'N/A (분석 오류)',
+            'volatility_trend': 'N/A (분석 오류)'
+        }
+
+def adjust_analysis_period(stock_info, default_period='1mo'):
+    """
+    주식의 변동성에 따라 분석 기간을 동적으로 조정하는 함수
+    """
+    try:
+        historical_data = stock_info.get('historical_data', [])
+        if not historical_data or len(historical_data) < 10:
+            return default_period, 7
+        
+        # 최근 10일간의 변동성 계산
+        recent_prices = [float(data['close']) for data in historical_data[:10]]
+        volatility = np.std(recent_prices) / np.mean(recent_prices) * 100
+        
+        # 변동성에 따른 기간 조정
+        if volatility > 8:  # 높은 변동성
+            return '2mo', 10  # 더 긴 기간으로 안정성 확보
+        elif volatility > 4:  # 중간 변동성
+            return '1mo', 7   # 기본 기간
+        else:  # 낮은 변동성
+            return '3mo', 14  # 더 긴 기간으로 트렌드 파악
+            
+    except Exception as e:
+        print(f"분석 기간 조정 중 오류: {e}")
+        return default_period, 7
 
 def generate_investment_report(company_name, period='1mo', news_days=7):
     """
@@ -40,6 +344,17 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
         if 'error' in stock_info:
             return {"error": f"주가 데이터를 가져올 수 없습니다: {stock_info['error']}"}
         
+        # 1.5. 변동성에 따른 동적 기간 조정
+        adjusted_period, adjusted_news_days = adjust_analysis_period(stock_info, period)
+        if adjusted_period != period or adjusted_news_days != news_days:
+            print(f"변동성 분석 결과: 기간 조정 ({period} → {adjusted_period}, {news_days}일 → {adjusted_news_days}일)")
+            # 조정된 기간으로 다시 주가 데이터 가져오기
+            if adjusted_period != period:
+                stock_data = get_stock_data(company_name, period=adjusted_period)
+                stock_info = json.loads(stock_data)
+            news_days = adjusted_news_days
+            period = adjusted_period
+        
         # 2. 뉴스 데이터 가져오기
         print("2. 관련 뉴스 수집 중...")
         end_date = datetime.now()
@@ -53,14 +368,18 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
         )
         news_info = json.loads(news_data)
         
-        # 3. GPT 프롬프트 구성
+        # 3. 기술적 지표 및 추세 분석 추가
+        technical_analysis = analyze_technical_indicators(stock_info)
+        market_sentiment = analyze_market_sentiment(stock_info)
+        
+        # 4. GPT 프롬프트 구성 (더 상세한 기술적 분석 정보 포함)
         prompt = f"""
 다음 정보를 바탕으로 {company_name}에 대한 전문적인 투자보고서를 작성해주세요.
 
-## 주가 정보:
+## 주가 현황:
 - 현재가: {stock_info.get('current_price', 'N/A')}원
 - 전일대비: {stock_info.get('change', 'N/A')}원 ({stock_info.get('change_percent', 'N/A')}%)
-- 거래량: {stock_info.get('volume', 'N/A')}주
+- 거래량: {stock_info.get('volume', 'N/A')}주 (평균 대비 {technical_analysis.get('volume_ratio', 'N/A')})
 - 고가: {stock_info.get('high', 'N/A')}원
 - 저가: {stock_info.get('low', 'N/A')}원
 - 시가총액: {stock_info.get('market_cap', 'N/A')}
@@ -68,6 +387,21 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
 - 배당수익률: {stock_info.get('dividend_yield', 'N/A')}
 - 52주 최고가: {stock_info.get('52_week_high', 'N/A')}원
 - 52주 최저가: {stock_info.get('52_week_low', 'N/A')}원
+
+## 기술적 분석 지표:
+- 단기 추세 (5일): {technical_analysis.get('short_trend', 'N/A')}
+- 중기 추세 (20일): {technical_analysis.get('medium_trend', 'N/A')}
+- 장기 추세 (60일): {technical_analysis.get('long_trend', 'N/A')}
+- 추세 강도: {technical_analysis.get('trend_strength', 'N/A')}
+- 변동성 수준: {technical_analysis.get('volatility_level', 'N/A')}
+- 현재가 vs 이동평균: {technical_analysis.get('price_vs_ma', 'N/A')}
+- 지지/저항 수준: {technical_analysis.get('support_resistance', 'N/A')}
+
+## 시장 심리 분석:
+- 전반적 모멘텀: {market_sentiment.get('momentum', 'N/A')}
+- 가격 위치 (52주 기준): {market_sentiment.get('price_position', 'N/A')}
+- 거래량 패턴: {market_sentiment.get('volume_pattern', 'N/A')}
+- 변동성 추세: {market_sentiment.get('volatility_trend', 'N/A')}
 
 ## 최근 뉴스 (최근 {news_days}일):
 """
@@ -83,34 +417,63 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
 위 정보를 바탕으로 다음 구조로 투자보고서를 작성해주세요:
 
 1. **종목 개요** (기업 소개 및 현재 주가 상황)
-2. **기술적 분석** (주가 차트 패턴, 거래량, 지지/저항선 등)
+2. **기술적 분석** 
+   - 제공된 기술적 지표를 바탕으로 추세 방향성과 강도 분석
+   - 단기/중기/장기 추세의 일치성 또는 divergence 분석
+   - 현재 변동성 수준과 과거 대비 비교
+   - 거래량 패턴과 가격 움직임의 상관관계
+   - 지지/저항 수준 근처에서의 가격 행동 분석
 3. **기본적 분석** (재무지표, PER, 시가총액 등 분석)
-4. **뉴스 및 시장 동향** (최근 뉴스가 주가에 미치는 영향 분석)
-5. **투자 의견** (매수/매도/보유 추천 및 근거)
-6. **위험 요소** (투자 시 주의해야 할 리스크 - 특히 상세히 작성)
-7. **목표가** (향후 3-6개월 예상 주가 범위 - 현실적이고 보수적으로 설정)
+4. **시장 심리 및 모멘텀 분석**
+   - 현재 시장 심리 상태와 모멘텀 방향
+   - 52주 기준 가격 위치의 의미
+   - 거래량과 변동성 패턴이 시사하는 바
+5. **뉴스 및 시장 동향** (최근 뉴스가 주가에 미치는 영향 분석)
+6. **투자 의견** (매수/매도/보유 추천 및 근거)
+7. **위험 요소** (투자 시 주의해야 할 리스크 - 특히 상세히 작성)
+8. **목표가 및 시나리오 분석** 
+   - 기술적 분석을 바탕으로 한 단기 목표가 (1-3개월)
+   - 기본적 분석 기반 중장기 목표가 (3-12개월)
+   - 상승/하락 시나리오별 예상 주가 범위
 
 **중요한 분석 지침:**
-- 투자 조언은 보수적이고 신중한 관점에서 제공하세요
+- 제공된 기술적 지표들을 적극 활용하여 차트 패턴과 추세를 구체적으로 분석하세요
+- 추세 강도와 변동성 수준을 고려한 동적인 분석을 제공하세요
+- 단기/중기/장기 추세 간의 상호작용과 시사점을 분석하세요
+- 거래량과 변동성 패턴을 통한 시장 참여자들의 심리 상태를 해석하세요
+- 투자 조언은 보수적이고 신중한 관점에서 제공하되, 기술적 신호도 반영하세요
 - 위험 요소를 충분히 강조하고 구체적으로 설명하세요
-- 목표가는 과도하게 낙관적이지 않도록 현실적 범위로 설정하세요
-- 불확실성과 시장 변동성을 반드시 고려하세요
-- 긍정적 요인과 부정적 요인을 균형있게 분석하세요
-- 단기적 변동성과 장기적 불확실성을 모두 언급하세요
+- 목표가는 기술적/기본적 분석을 종합하여 현실적 범위로 설정하세요
+- 시장 변동성과 불확실성을 반드시 고려하세요
 
-각 섹션을 상세하고 전문적으로 작성해주세요. 투자 조언은 객관적 데이터에 기반하되, 보수적 관점을 유지해주세요.
+각 섹션을 상세하고 전문적으로 작성해주세요. 특히 기술적 분석 부분에서는 제공된 지표들을 구체적으로 언급하며 분석하세요.
 """
 
-        # 4. GPT API 호출
-        print("3. GPT 분석 중...")
+        # 5. GPT API 호출
+        print("4. GPT 분석 중...")
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "당신은 경험이 풍부하고 보수적인 주식 애널리스트입니다. 주어진 데이터를 바탕으로 객관적이고 신중한 투자보고서를 작성합니다. 리스크를 충분히 고려하고, 과도한 낙관론을 피하며, 현실적이고 보수적인 관점에서 분석합니다. 불확실성과 잠재적 위험요소를 항상 강조합니다."},
+                {"role": "system", "content": """당신은 경험이 풍부하고 보수적인 주식 애널리스트입니다. 
+
+주요 분석 능력:
+- 기술적 분석: 차트 패턴, 추세선, 이동평균, 거래량 분석
+- 기본적 분석: 재무지표, 밸류에이션, 산업 분석
+- 시장 심리 분석: 모멘텀, 변동성, 투자자 심리
+
+분석 원칙:
+1. 제공된 기술적 지표를 구체적으로 언급하며 분석
+2. 단기/중기/장기 추세의 일치성과 divergence 해석
+3. 거래량과 가격 움직임의 상관관계 분석
+4. 변동성과 시장 심리를 고려한 위험 평가
+5. 보수적이고 현실적인 목표가 설정
+6. 시나리오별 분석 (상승/하락/횡보)
+
+항상 리스크를 충분히 고려하고, 불확실성을 강조하며, 객관적 데이터에 기반한 분석을 제공합니다."""},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=2000
+            max_tokens=2500
         )
         
         # 5. 결과 구성
@@ -118,12 +481,15 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
             "company_name": company_name,
             "report_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "stock_data": stock_info,
+            "technical_analysis": technical_analysis,
+            "market_sentiment": market_sentiment,
             "news_count": len(news_info) if news_info else 0,
             "analysis_period": f"{period} (주가), {news_days}일 (뉴스)",
             "investment_report": response.choices[0].message.content,
             "data_sources": {
                 "stock_data": "Yahoo Finance",
                 "news_data": "NewsAPI",
+                "technical_analysis": "Custom Analysis",
                 "analysis": "OpenAI GPT-4"
             }
         }
