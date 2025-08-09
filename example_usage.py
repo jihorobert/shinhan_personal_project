@@ -20,8 +20,8 @@ def main():
     print("=== 신한 개인프로젝트: AI 투자보고서 생성 시스템 ===\n")
     
     while True:
-        print("1. 단일 기업 투자보고서 생성")
-        print("2. 여러 기업 투자보고서 생성")
+        print("1. 단일 기업 투자보고서 생성 (뉴스 기간 선택 가능: 7-30일)")
+        print("2. 여러 기업 투자보고서 생성 (뉴스 기간 선택 가능: 7-30일)")
         print("3. 종료")
         
         choice = input("\n선택하세요 (1-3): ").strip()
@@ -29,9 +29,24 @@ def main():
         if choice == '1':
             company_name = input("분석할 회사명을 입력하세요 (예: 삼성전자): ").strip()
             if company_name:
-                print(f"\n{company_name} 투자보고서를 생성합니다...")
+                # 뉴스 수집 기간 선택
+                while True:
+                    news_period = input("뉴스 수집 기간을 입력하세요 (7-30일, 기본값: 7): ").strip()
+                    if not news_period:  # 빈 입력시 기본값 사용
+                        news_days = 7
+                        break
+                    try:
+                        news_days = int(news_period)
+                        if 7 <= news_days <= 30:
+                            break
+                        else:
+                            print("❌ 뉴스 수집 기간은 7일에서 30일 사이여야 합니다.")
+                    except ValueError:
+                        print("❌ 숫자를 입력해주세요.")
+                
+                print(f"\n{company_name} 투자보고서를 생성합니다... (뉴스 기간: {news_days}일)")
                 try:
-                    report = generate_investment_report(company_name)
+                    report = generate_investment_report(company_name, news_days=news_days)
                     
                     # 파일로 저장
                     from datetime import datetime
@@ -65,10 +80,26 @@ def main():
             companies_input = input("분석할 회사들을 쉼표로 구분하여 입력하세요 (예: 삼성전자,SK하이닉스,NAVER): ").strip()
             if companies_input:
                 companies = [company.strip() for company in companies_input.split(',')]
-                print(f"\n{len(companies)}개 기업의 투자보고서를 생성합니다...")
+                
+                # 뉴스 수집 기간 선택
+                while True:
+                    news_period = input("뉴스 수집 기간을 입력하세요 (7-30일, 기본값: 7): ").strip()
+                    if not news_period:  # 빈 입력시 기본값 사용
+                        news_days = 7
+                        break
+                    try:
+                        news_days = int(news_period)
+                        if 7 <= news_days <= 30:
+                            break
+                        else:
+                            print("❌ 뉴스 수집 기간은 7일에서 30일 사이여야 합니다.")
+                    except ValueError:
+                        print("❌ 숫자를 입력해주세요.")
+                
+                print(f"\n{len(companies)}개 기업의 투자보고서를 생성합니다... (뉴스 기간: {news_days}일)")
                 
                 try:
-                    reports = generate_multiple_reports(companies)
+                    reports = generate_multiple_reports(companies, news_days=news_days)
                     
                     # 파일로 저장
                     from datetime import datetime
