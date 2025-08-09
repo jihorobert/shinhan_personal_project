@@ -1,6 +1,29 @@
+<<<<<<< HEAD
 requests>=2.31.0
 python-dotenv>=1.0.0
 yfinance>=0.2.18
 pandas>=2.0.0
 numpy>=1.24.0
 newsapi-python>=0.2.6 
+=======
+# 주식 데이터 수집
+yfinance>=0.2.65
+pandas==2.2.2
+
+# 뉴스 데이터 수집
+newsapi-python==0.2.7
+requests==2.31.0
+
+# AI 분석
+openai>=1.99.0
+
+# 환경 변수 관리
+python-dotenv==1.0.1
+
+# 데이터 처리
+numpy==1.26.4
+
+# PDF 생성
+reportlab==4.0.9
+matplotlib==3.8.2
+>>>>>>> 75031126ccee83e21527913b2a8d2c6fdbdcab30
