@@ -40,6 +40,6 @@ def get_latest_news(query, from_date, to_date, num_articles=10):
     return result_list
         
 # Example usage
-
-company_name = input("회사명을 입력하세요: ")
-print(get_latest_news(company_name, '2025-07-27', '2025-08-02'))
+if __name__ == "__main__":
+    company_name = input("회사명을 입력하세요: ")
+    print(get_latest_news(company_name, '2025-07-27', '2025-08-02'))

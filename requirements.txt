@@ -1,0 +1,16 @@
+# 주식 데이터 수집
+yfinance==0.2.36
+pandas==2.2.2
+
+# 뉴스 데이터 수집
+newsapi-python==0.2.7
+requests==2.31.0
+
+# AI 분석
+openai==1.54.3
+
+# 환경 변수 관리
+python-dotenv==1.0.1
+
+# 데이터 처리
+numpy==1.26.4
