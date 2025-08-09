@@ -110,7 +110,7 @@ class PDFReportGenerator:
         )
 
     def create_stock_chart(self, stock_data):
-        """주가 차트 생성"""
+        """과거/현재/미래 전망을 포함한 주가 차트 생성"""
         try:
             if 'historical_data' not in stock_data or not stock_data['historical_data']:
                 return None
@@ -118,27 +118,25 @@ class PDFReportGenerator:
             # 한글 폰트 설정 (matplotlib용)
             import matplotlib.pyplot as plt
             import matplotlib.font_manager as fm
+            import numpy as np
+            from datetime import datetime, timedelta
             
-            # matplotlib용 한글 폰트 설정 (시스템에서 사용 가능한 폰트명 사용)
-            korean_font_names = [
-                'Apple SD Gothic Neo',  # macOS
-                'AppleGothic',          # macOS
-                'Noto Sans Gothic',     # macOS
-                'Malgun Gothic',        # Windows
-                'NanumGothic',          # Linux
-                'DejaVu Sans'           # Fallback
-            ]
+            # matplotlib용 한글 폰트 설정
+            import warnings
+            warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib.font_manager')
             
-            font_prop = None
-            for font_name in korean_font_names:
-                try:
-                    # 시스템에서 해당 폰트가 사용 가능한지 확인
-                    available_fonts = [f.name for f in fm.fontManager.ttflist]
-                    if font_name in available_fonts:
-                        font_prop = fm.FontProperties(family=font_name)
-                        break
-                except:
-                    continue
+            # 사용 가능한 폰트 찾기
+            available_fonts = [f.name for f in fm.fontManager.ttflist]
+            korean_fonts = ['AppleGothic', 'Apple SD Gothic Neo']
+            
+            for font in korean_fonts:
+                if font in available_fonts:
+                    plt.rcParams['font.family'] = [font]
+                    break
+            else:
+                plt.rcParams['font.family'] = ['DejaVu Sans']
+                
+            plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
             
             # 데이터 준비
             dates = []
@@ -148,39 +146,102 @@ class PDFReportGenerator:
                 dates.append(pd.to_datetime(data['date']))
                 prices.append(data['close'])
             
-            # 차트 생성
-            plt.figure(figsize=(10, 6))
-            plt.plot(dates, prices, linewidth=2, color='blue')
+            # 데이터를 날짜순으로 정렬
+            sorted_data = sorted(zip(dates, prices))
+            dates, prices = zip(*sorted_data)
+            dates = list(dates)
+            prices = list(prices)
             
-            # 한글 폰트가 있으면 사용, 없으면 영어로 표시
-            if font_prop:
-                plt.title(f"{stock_data['company_name']} Stock Price Trend", fontsize=14, pad=20, fontproperties=font_prop)
-                plt.xlabel('Date', fontsize=12, fontproperties=font_prop)
-                plt.ylabel('Price (KRW)', fontsize=12, fontproperties=font_prop)
+            # 차트 생성 (더 큰 사이즈)
+            fig, ax = plt.subplots(figsize=(12, 8))
+            
+            # 과거 데이터 (파란색 실선)
+            ax.plot(dates, prices, linewidth=2.5, color='#1f77b4', label='과거 주가', alpha=0.8)
+            
+            # 현재가 포인트 강조
+            current_price = stock_data.get('current_price', prices[-1] if prices else 0)
+            current_date = dates[-1] if dates else datetime.now()
+            ax.scatter([current_date], [current_price], color='red', s=100, zorder=5, label=f'현재가: {current_price:,}원')
+            
+            # 미래 전망 라인 (단순한 추세선 기반)
+            if len(prices) >= 5:
+                # 최근 5일 평균 변화율을 기반으로 미래 예측
+                recent_prices = prices[-5:]
+                trend = (recent_prices[-1] - recent_prices[0]) / len(recent_prices)
+                
+                # 미래 30일 예측 (단순 선형 추세)
+                future_dates = [current_date + timedelta(days=i) for i in range(1, 31)]
+                future_prices = [current_price + (trend * i) for i in range(1, 31)]
+                
+                # 변동성 추가 (실제 주가의 변동성을 반영)
+                price_volatility = np.std(prices[-10:]) if len(prices) >= 10 else np.std(prices)
+                future_upper = [p + price_volatility for p in future_prices]
+                future_lower = [p - price_volatility for p in future_prices]
+                
+                # 미래 예측선 (점선)
+                ax.plot(future_dates, future_prices, linewidth=2, color='orange', 
+                       linestyle='--', alpha=0.7, label='예상 추세')
+                
+                # 신뢰구간 (반투명 영역)
+                ax.fill_between(future_dates, future_lower, future_upper, 
+                               color='orange', alpha=0.2, label='예상 범위')
+            
+            # 이동평균선 추가 (5일, 20일)
+            if len(prices) >= 20:
+                # 5일 이동평균
+                ma5 = pd.Series(prices).rolling(window=5).mean()
+                ax.plot(dates, ma5, linewidth=1.5, color='green', alpha=0.7, label='5일 이평선')
+                
+                # 20일 이동평균
+                ma20 = pd.Series(prices).rolling(window=20).mean()
+                ax.plot(dates, ma20, linewidth=1.5, color='purple', alpha=0.7, label='20일 이평선')
+            
+            # 차트 스타일링
+            company_name = stock_data.get('company_name', '주식')
+            ax.set_title(f'{company_name} 주가 분석 차트', fontsize=16, fontweight='bold', pad=20)
+            ax.set_xlabel('날짜', fontsize=12)
+            ax.set_ylabel('주가 (원)', fontsize=12)
+            
+            # 격자 스타일
+            ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+            ax.set_axisbelow(True)
+            
+            # 범례
+            ax.legend(loc='upper left', frameon=True, fancybox=True, shadow=True)
+            
+            # Y축 포맷팅 (천 단위 콤마)
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}'))
+            
+            # X축 날짜 포맷팅
+            if len(dates) > 30:
+                ax.xaxis.set_major_locator(mdates.WeekdayLocator())
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
             else:
-                plt.title(f"{stock_data['company_name']} Stock Price Trend", fontsize=14, pad=20)
-                plt.xlabel('Date', fontsize=12)
-                plt.ylabel('Price (KRW)', fontsize=12)
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
             
-            plt.grid(True, alpha=0.3)
-            
-            # 날짜 포맷팅
-            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
-            plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
             plt.xticks(rotation=45)
             
+            # 차트 영역 최적화
             plt.tight_layout()
+            
+            # 배경색 설정
+            fig.patch.set_facecolor('white')
+            ax.set_facecolor('#fafafa')
             
             # 메모리에 이미지 저장
             img_buffer = io.BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+            plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', 
+                       facecolor='white', edgecolor='none')
             img_buffer.seek(0)
-            plt.close()
+            plt.close(fig)  # 메모리 해제
             
             return img_buffer
             
         except Exception as e:
             print(f"차트 생성 오류: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def generate_pdf_report(self, json_report_path, output_path=None):
@@ -283,14 +344,13 @@ class PDFReportGenerator:
                 story.append(stock_table)
                 story.append(Spacer(1, 15))
                 
-                # 주가 차트 추가 (임시로 비활성화)
-                # chart_buffer = self.create_stock_chart(stock_data)
-                # if chart_buffer:
-                #     from reportlab.platypus import Image
-                #     chart_image = ImageReader(chart_buffer)
-                #     chart = Image(chart_image, width=6*inch, height=3.6*inch)
-                #     story.append(chart)
-                #     story.append(Spacer(1, 15))
+                # 주가 차트 추가
+                chart_buffer = self.create_stock_chart(stock_data)
+                if chart_buffer:
+                    from reportlab.platypus import Image
+                    chart = Image(chart_buffer, width=7*inch, height=4.2*inch)
+                    story.append(chart)
+                    story.append(Spacer(1, 15))
             
             # GPT 분석 결과
             if 'investment_report' in report_data:
@@ -421,14 +481,13 @@ class PDFReportGenerator:
                 story.append(stock_table)
                 story.append(Spacer(1, 15))
                 
-                # 주가 차트 추가 (임시로 비활성화)
-                # chart_buffer = self.create_stock_chart(stock_data)
-                # if chart_buffer:
-                #     from reportlab.platypus import Image
-                #     chart_image = ImageReader(chart_buffer)
-                #     chart = Image(chart_image, width=6*inch, height=3.6*inch)
-                #     story.append(chart)
-                #     story.append(Spacer(1, 15))
+                # 주가 차트 추가
+                chart_buffer = self.create_stock_chart(stock_data)
+                if chart_buffer:
+                    from reportlab.platypus import Image
+                    chart = Image(chart_buffer, width=7*inch, height=4.2*inch)
+                    story.append(chart)
+                    story.append(Spacer(1, 15))
             
             # GPT 분석 결과
             if 'investment_report' in report_data:
