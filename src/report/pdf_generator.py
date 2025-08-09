@@ -194,60 +194,88 @@ class PDFReportGenerator:
                     dynamic_trend = weighted_trend * 0.7  # 추세 완화
                     trend_confidence = 0.4
                 
-                # 미래 30일 예측 (비선형 곡선으로 더 현실적)
+                # 미래 30일 예측 (과거 주가와 같은 연속적인 형태)
                 future_dates = [current_date + timedelta(days=i) for i in range(1, 31)]
                 future_prices = []
                 
-                for i in range(1, 31):
-                    # 시간이 지날수록 추세의 영향력 감소 (현실적인 예측)
-                    time_decay = np.exp(-i / 20)  # 20일 반감기
-                    adjusted_trend = dynamic_trend * time_decay
+                # 현실적인 주가 움직임을 위한 랜덤 워크 기반 예측
+                np.random.seed(42)  # 재현 가능한 결과를 위한 시드 설정
+                
+                # 일일 변동률 계산 (최근 20일 기준)
+                daily_returns = []
+                for i in range(1, min(len(prices), 21)):
+                    if prices[-i-1] != 0:
+                        daily_return = (prices[-i] - prices[-i-1]) / prices[-i-1]
+                        daily_returns.append(daily_return)
+                
+                if daily_returns:
+                    avg_return = np.mean(daily_returns)
+                    return_std = np.std(daily_returns)
+                else:
+                    avg_return = 0
+                    return_std = 0.02  # 기본 2% 변동성
+                
+                # 추세를 반영한 일일 수익률 조정
+                trend_daily_return = dynamic_trend / current_price if current_price != 0 else 0
+                adjusted_avg_return = (avg_return * 0.3) + (trend_daily_return * 0.7)  # 추세 70%, 과거 패턴 30%
+                
+                # 미래 주가 생성 (과거와 같은 자연스러운 움직임)
+                last_price = current_price
+                for i in range(30):
+                    # 랜덤 워크 + 추세 반영
+                    random_return = np.random.normal(adjusted_avg_return, return_std)
                     
-                    # 약간의 노이즈 추가로 더 자연스러운 곡선
-                    noise_factor = np.sin(i / 3) * (recent_volatility * 0.1)
-                    predicted_price = current_price + (adjusted_trend * i) + noise_factor
-                    future_prices.append(predicted_price)
+                    # 극단적 변동 제한 (일일 ±10%)
+                    random_return = max(-0.1, min(0.1, random_return))
+                    
+                    # 새로운 가격 계산
+                    new_price = last_price * (1 + random_return)
+                    future_prices.append(new_price)
+                    last_price = new_price
                 
-                # 동적 변동성 계산 (추세 강도에 따라 조정)
-                base_volatility = np.std(prices[-20:]) if len(prices) >= 20 else np.std(prices)
-                dynamic_volatility = base_volatility * (1.5 + trend_strength)  # 추세가 강할수록 변동성 증가
+                # 전체 데이터 (과거 + 현재 + 미래)를 하나의 연속된 선으로 표시
+                all_dates = dates + [current_date] + future_dates
+                all_prices = prices + [current_price] + future_prices
                 
-                future_upper = [p + dynamic_volatility for p in future_prices]
-                future_lower = [p - dynamic_volatility for p in future_prices]
+                # 과거 주가 (파란색 실선)
+                ax.plot(dates, prices, linewidth=2.5, color='#1f77b4', label='과거 주가', alpha=0.8)
                 
-                # 추세 방향에 따른 색상 및 스타일 결정
+                # 추세 방향에 따른 색상 결정
                 if weighted_trend > 0:
                     trend_color = '#ff4444'  # 상승 추세 - 빨간색
-                    trend_label = f'예상 추세 (상승 {trend_strength:.1f})'
-                    line_style = '-'  # 실선으로 강조
+                    trend_label = f'예상 주가 (상승세)'
                 elif weighted_trend < 0:
-                    trend_color = '#4444ff'  # 하락 추세 - 파란색
-                    trend_label = f'예상 추세 (하락 {trend_strength:.1f})'
-                    line_style = '-'  # 실선으로 강조
+                    trend_color = '#4444ff'  # 하락 추세 - 파란색  
+                    trend_label = f'예상 주가 (하락세)'
                 else:
-                    trend_color = '#888888'  # 횡보 - 회색
-                    trend_label = '예상 추세 (횡보)'
-                    line_style = '--'  # 점선
+                    trend_color = '#ffa500'  # 횡보 - 주황색
+                    trend_label = '예상 주가 (횡보)'
                 
-                # 미래 예측선 (동적 색상과 굵기)
-                line_width = 2.5 + (trend_strength * 1.5)  # 추세가 강할수록 굵게
-                ax.plot(future_dates, future_prices, linewidth=line_width, color=trend_color, 
-                       linestyle=line_style, alpha=0.8, label=trend_label)
+                # 미래 예측 주가 (과거와 같은 스타일의 연속선)
+                future_line_width = 2.0 + (trend_strength * 1.0)
+                ax.plot([current_date] + future_dates, [current_price] + future_prices, 
+                       linewidth=future_line_width, color=trend_color, alpha=0.7, label=trend_label)
                 
-                # 추세 방향 화살표 추가 (마지막 지점에)
-                if abs(weighted_trend) > recent_volatility * 0.1:  # 의미있는 추세일 때만
-                    arrow_props = dict(arrowstyle='->', lw=2, color=trend_color)
-                    if weighted_trend > 0:
-                        ax.annotate('', xy=(future_dates[-1], future_prices[-1] + dynamic_volatility * 0.3), 
-                                   xytext=(future_dates[-5], future_prices[-5]), arrowprops=arrow_props)
-                    else:
-                        ax.annotate('', xy=(future_dates[-1], future_prices[-1] - dynamic_volatility * 0.3), 
-                                   xytext=(future_dates[-5], future_prices[-5]), arrowprops=arrow_props)
+                # 현재가와 미래 첫 지점을 자연스럽게 연결
+                ax.plot([current_date, future_dates[0]], [current_price, future_prices[0]], 
+                       linewidth=future_line_width, color=trend_color, alpha=0.7)
                 
-                # 신뢰구간 (추세 강도에 따른 투명도)
-                confidence_alpha = 0.1 + (trend_confidence * 0.15)
+                # 동적 변동성 계산 (미래 예측의 불확실성)
+                base_volatility = np.std(prices[-20:]) if len(prices) >= 20 else np.std(prices)
+                
+                # 시간이 지날수록 불확실성 증가
+                future_upper = []
+                future_lower = []
+                for i, price in enumerate(future_prices):
+                    # 불확실성이 시간에 따라 증가
+                    uncertainty = base_volatility * (1 + i * 0.05)  # 매일 5%씩 불확실성 증가
+                    future_upper.append(price + uncertainty)
+                    future_lower.append(price - uncertainty)
+                
+                # 신뢰구간 (시간이 지날수록 넓어짐)
+                confidence_alpha = 0.1 + (trend_confidence * 0.1)
                 ax.fill_between(future_dates, future_lower, future_upper, 
-                               color=trend_color, alpha=confidence_alpha, label=f'신뢰구간 ({trend_confidence*100:.0f}%)')
+                               color=trend_color, alpha=confidence_alpha, label=f'예측 불확실성')
             
             # 이동평균선 추가 (5일, 20일)
             if len(prices) >= 20:
