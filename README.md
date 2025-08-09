@@ -67,6 +67,12 @@
 
 ![보고서 생성 완료 페이지](src/frontend/public/reportcomplete.png)
 
+### PDF 보고서 예시
+
+실제 생성된 현대모비스 투자보고서 PDF 파일:
+
+📄 [현대모비스 투자보고서 PDF 예시](reports/현대모비스_report_20250809_222836.pdf)
+
 ## 📊 지원 종목
 
 현재 다음 한국 주요 기업들을 지원합니다:
