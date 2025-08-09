@@ -10,6 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from fetch.stock_fetcher import get_stock_data
 from fetch.news_fetcher import get_latest_news
+from report.pdf_generator import generate_pdf_report_from_data
 
 load_dotenv()
 
@@ -145,6 +146,100 @@ def generate_multiple_reports(company_names, period='1mo', news_days=7):
         reports[company_name] = json.loads(report)
     
     return json.dumps(reports, ensure_ascii=False, indent=2)
+
+def generate_investment_report_with_pdf(company_name, period='1mo', news_days=7, save_pdf=True):
+    """
+    주가 정보와 뉴스 정보를 기반으로 투자보고서를 생성하고 PDF로도 저장하는 함수
+    
+    Parameters:
+    - company_name: 회사명 (예: '삼성전자')
+    - period: 주가 데이터 기간 (기본값: '1mo')
+    - news_days: 뉴스 검색 기간 (기본값: 7일)
+    - save_pdf: PDF 파일 생성 여부 (기본값: True)
+    
+    Returns:
+    - 생성된 파일 경로들을 포함한 딕셔너리
+    """
+    try:
+        print(f"=== {company_name} 투자보고서 생성 중 ===")
+        
+        # 1. 투자보고서 생성
+        report_json = generate_investment_report(company_name, period, news_days)
+        report_data = json.loads(report_json)
+        
+        if 'error' in report_data:
+            return {"error": f"투자보고서 생성 실패: {report_data['error']}"}
+        
+        # 2. JSON 파일 저장
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        json_filename = f"reports/{company_name}_report_{timestamp}.json"
+        
+        # reports 디렉토리가 없으면 생성
+        os.makedirs('reports', exist_ok=True)
+        
+        with open(json_filename, 'w', encoding='utf-8') as f:
+            f.write(report_json)
+        
+        result = {
+            "company_name": company_name,
+            "json_file": json_filename,
+            "pdf_file": None,
+            "status": "success"
+        }
+        
+        # 3. PDF 파일 생성
+        if save_pdf:
+            print("5. PDF 보고서 생성 중...")
+            pdf_filename = f"reports/{company_name}_report_{timestamp}.pdf"
+            
+            try:
+                pdf_path = generate_pdf_report_from_data(report_data, pdf_filename)
+                if pdf_path:
+                    result["pdf_file"] = pdf_filename
+                    print(f"PDF 보고서 생성 완료: {pdf_filename}")
+                else:
+                    print("PDF 생성에 실패했지만 JSON 보고서는 정상적으로 생성되었습니다.")
+            except Exception as e:
+                print(f"PDF 생성 중 오류 발생: {e}")
+                print("JSON 보고서는 정상적으로 생성되었습니다.")
+        
+        print("투자보고서 생성 완료!")
+        return result
+        
+    except Exception as e:
+        print(f"투자보고서 생성 중 오류 발생: {str(e)}")
+        return {"error": f"투자보고서 생성 실패: {str(e)}"}
+
+def convert_existing_report_to_pdf(json_file_path):
+    """
+    기존 JSON 보고서를 PDF로 변환하는 함수
+    
+    Parameters:
+    - json_file_path: JSON 보고서 파일 경로
+    
+    Returns:
+    - PDF 파일 경로 또는 None
+    """
+    try:
+        if not os.path.exists(json_file_path):
+            print(f"파일을 찾을 수 없습니다: {json_file_path}")
+            return None
+        
+        # JSON 파일 읽기
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            report_data = json.load(f)
+        
+        # PDF 파일명 생성
+        base_name = os.path.splitext(json_file_path)[0]
+        pdf_path = f"{base_name}.pdf"
+        
+        # PDF 생성
+        result = generate_pdf_report_from_data(report_data, pdf_path)
+        return result
+        
+    except Exception as e:
+        print(f"PDF 변환 중 오류 발생: {e}")
+        return None
 
 # Example usage
 if __name__ == "__main__":
