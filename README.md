@@ -79,6 +79,10 @@
 
 📄 [현대모비스 투자보고서 PDF 예시](reports/현대모비스_report_20250809_222836.pdf)
 
+<img src="https://github.com/user-attachments/assets/56142184-75d2-421d-92d0-29c84aed0bdb" width="500">
+
+https://github.com/user-attachments/assets/f86cbbec-be99-4809-baea-4667f9a59a59
+
 ## 📊 지원 종목
 
 현재 다음 한국 주요 기업들을 지원합니다:
