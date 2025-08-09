@@ -14,14 +14,14 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from analysis.analyze import generate_investment_report, generate_multiple_reports
+from analysis.analyze import generate_investment_report_with_pdf, generate_multiple_reports_with_pdf
 
 def main():
     print("=== 신한 개인프로젝트: AI 투자보고서 생성 시스템 ===\n")
     
     while True:
-        print("1. 단일 기업 투자보고서 생성 (뉴스 기간 선택 가능: 7-30일)")
-        print("2. 여러 기업 투자보고서 생성 (뉴스 기간 선택 가능: 7-30일)")
+        print("1. 단일 기업 투자보고서 생성 (JSON + PDF, 뉴스 기간: 7-30일)")
+        print("2. 여러 기업 투자보고서 생성 (JSON + PDF, 뉴스 기간: 7-30일)")
         print("3. 종료")
         
         choice = input("\n선택하세요 (1-3): ").strip()
@@ -46,30 +46,25 @@ def main():
                 
                 print(f"\n{company_name} 투자보고서를 생성합니다... (뉴스 기간: {news_days}일)")
                 try:
-                    report = generate_investment_report(company_name, news_days=news_days)
+                    result = generate_investment_report_with_pdf(company_name, news_days=news_days)
                     
-                    # 파일로 저장
-                    from datetime import datetime
-                    import json
-                    
-                    filename = f"reports/{company_name}_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                    os.makedirs('reports', exist_ok=True)
-                    
-                    with open(filename, 'w', encoding='utf-8') as f:
-                        f.write(report)
-                    
-                    print(f"✅ 보고서가 {filename}에 저장되었습니다.")
-                    
-                    # 요약 출력
-                    report_data = json.loads(report)
-                    if 'error' not in report_data:
+                    if 'error' not in result:
+                        print(f"✅ JSON 보고서가 {result['json_file']}에 저장되었습니다.")
+                        if result.get('pdf_file'):
+                            print(f"✅ PDF 보고서가 {result['pdf_file']}에 저장되었습니다.")
+                        
+                        # 요약 출력을 위해 JSON 파일 읽기
+                        import json
+                        with open(result['json_file'], 'r', encoding='utf-8') as f:
+                            report_data = json.load(f)
+                        
                         print(f"\n📊 {company_name} 투자보고서 요약:")
                         print(f"현재가: {report_data['stock_data']['current_price']}원")
                         print(f"전일대비: {report_data['stock_data']['change']}원 ({report_data['stock_data']['change_percent']}%)")
                         print(f"분석된 뉴스: {report_data['news_count']}개")
                         print("\n" + "="*50)
                     else:
-                        print(f"❌ 오류: {report_data['error']}")
+                        print(f"❌ 오류: {result['error']}")
                         
                 except Exception as e:
                     print(f"❌ 오류 발생: {str(e)}")
@@ -99,18 +94,21 @@ def main():
                 print(f"\n{len(companies)}개 기업의 투자보고서를 생성합니다... (뉴스 기간: {news_days}일)")
                 
                 try:
-                    reports = generate_multiple_reports(companies, news_days=news_days)
+                    results = generate_multiple_reports_with_pdf(companies, news_days=news_days)
                     
-                    # 파일로 저장
-                    from datetime import datetime
+                    # 결과 요약 출력
+                    successful_count = 0
+                    failed_count = 0
                     
-                    filename = f"reports/multiple_reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                    os.makedirs('reports', exist_ok=True)
+                    for company_name, result in results.items():
+                        if 'error' not in result:
+                            successful_count += 1
+                            print(f"✅ {company_name}: JSON({result['json_file']}), PDF({result.get('pdf_file', 'N/A')})")
+                        else:
+                            failed_count += 1
+                            print(f"❌ {company_name}: {result['error']}")
                     
-                    with open(filename, 'w', encoding='utf-8') as f:
-                        f.write(reports)
-                    
-                    print(f"✅ 종합 보고서가 {filename}에 저장되었습니다.")
+                    print(f"\n📊 최종 결과: 성공 {successful_count}개, 실패 {failed_count}개")
                     
                 except Exception as e:
                     print(f"❌ 오류 발생: {str(e)}")

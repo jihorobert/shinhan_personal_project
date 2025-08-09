@@ -147,6 +147,56 @@ def generate_multiple_reports(company_names, period='1mo', news_days=7):
     
     return json.dumps(reports, ensure_ascii=False, indent=2)
 
+def generate_multiple_reports_with_pdf(company_names, period='1mo', news_days=7):
+    """
+    여러 기업의 투자보고서를 한번에 생성하고 각각 PDF로도 저장하는 함수
+    
+    Parameters:
+    - company_names: 회사명 리스트
+    - period: 주가 데이터 기간
+    - news_days: 뉴스 검색 기간
+    
+    Returns:
+    - 각 기업의 생성된 파일 정보를 포함한 딕셔너리
+    """
+    results = {}
+    successful_reports = []
+    failed_reports = []
+    
+    for company_name in company_names:
+        print(f"\n{'='*50}")
+        print(f"{company_name} 처리 중...")
+        
+        try:
+            result = generate_investment_report_with_pdf(company_name, period, news_days)
+            results[company_name] = result
+            
+            if 'error' not in result:
+                successful_reports.append(company_name)
+                print(f"✅ {company_name} 보고서 생성 완료")
+            else:
+                failed_reports.append(company_name)
+                print(f"❌ {company_name} 보고서 생성 실패: {result['error']}")
+                
+        except Exception as e:
+            error_result = {"error": f"처리 중 오류 발생: {str(e)}"}
+            results[company_name] = error_result
+            failed_reports.append(company_name)
+            print(f"❌ {company_name} 처리 중 오류: {str(e)}")
+    
+    # 종합 결과 출력
+    print(f"\n{'='*60}")
+    print("📊 전체 처리 결과:")
+    print(f"✅ 성공: {len(successful_reports)}개 기업")
+    print(f"❌ 실패: {len(failed_reports)}개 기업")
+    
+    if successful_reports:
+        print(f"\n성공한 기업: {', '.join(successful_reports)}")
+    if failed_reports:
+        print(f"\n실패한 기업: {', '.join(failed_reports)}")
+    
+    return results
+
 def generate_investment_report_with_pdf(company_name, period='1mo', news_days=7, save_pdf=True):
     """
     주가 정보와 뉴스 정보를 기반으로 투자보고서를 생성하고 PDF로도 저장하는 함수
