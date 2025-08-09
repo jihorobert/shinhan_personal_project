@@ -27,23 +27,31 @@ class PDFReportGenerator:
     def setup_fonts(self):
         """한글 폰트 설정"""
         try:
-            # 시스템에서 한글 폰트 찾기
+            # 시스템에서 TTF 형식의 한글 폰트 찾기 (TTC 파일은 reportlab에서 지원하지 않음)
             korean_fonts = [
-                '/System/Library/Fonts/AppleSDGothicNeo.ttc',  # macOS
-                '/System/Library/Fonts/Helvetica.ttc',
+                '/System/Library/Fonts/Supplemental/AppleGothic.ttf',  # macOS
+                '/System/Library/Fonts/Supplemental/NotoSansGothic-Regular.ttf',  # macOS
                 'C:/Windows/Fonts/malgun.ttf',  # Windows
+                'C:/Windows/Fonts/gulim.ttc',  # Windows
                 '/usr/share/fonts/truetype/nanum/NanumGothic.ttf',  # Linux
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',  # Linux fallback
             ]
             
             font_registered = False
             for font_path in korean_fonts:
                 if os.path.exists(font_path):
                     try:
+                        # TTC 파일인지 확인
+                        if font_path.endswith('.ttc'):
+                            print(f"TTC 파일은 지원하지 않음: {font_path}")
+                            continue
+                            
                         pdfmetrics.registerFont(TTFont('Korean', font_path))
                         font_registered = True
                         print(f"한글 폰트 등록 성공: {font_path}")
                         break
-                    except:
+                    except Exception as font_error:
+                        print(f"폰트 등록 실패 {font_path}: {font_error}")
                         continue
             
             if not font_registered:
@@ -111,20 +119,26 @@ class PDFReportGenerator:
             import matplotlib.pyplot as plt
             import matplotlib.font_manager as fm
             
-            # macOS에서 한글 폰트 찾기
-            font_paths = [
-                '/System/Library/Fonts/AppleSDGothicNeo.ttc',
-                '/System/Library/Fonts/Helvetica.ttc',
+            # matplotlib용 한글 폰트 설정 (시스템에서 사용 가능한 폰트명 사용)
+            korean_font_names = [
+                'Apple SD Gothic Neo',  # macOS
+                'AppleGothic',          # macOS
+                'Noto Sans Gothic',     # macOS
+                'Malgun Gothic',        # Windows
+                'NanumGothic',          # Linux
+                'DejaVu Sans'           # Fallback
             ]
             
             font_prop = None
-            for font_path in font_paths:
-                if os.path.exists(font_path):
-                    try:
-                        font_prop = fm.FontProperties(fname=font_path)
+            for font_name in korean_font_names:
+                try:
+                    # 시스템에서 해당 폰트가 사용 가능한지 확인
+                    available_fonts = [f.name for f in fm.fontManager.ttflist]
+                    if font_name in available_fonts:
+                        font_prop = fm.FontProperties(family=font_name)
                         break
-                    except:
-                        continue
+                except:
+                    continue
             
             # 데이터 준비
             dates = []
