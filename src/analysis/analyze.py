@@ -299,10 +299,16 @@ def analyze_market_sentiment(stock_info):
 def adjust_analysis_period(stock_info, default_period='1mo'):
     """
     주식의 변동성에 따라 분석 기간을 동적으로 조정하는 함수
+    
+    변동성 기준:
+    - 높은 변동성 (8% 이상): 2개월 주가, 10일 뉴스 → 안정적 분석을 위한 긴 기간
+    - 중간 변동성 (4-8%): 1개월 주가, 7일 뉴스 → 표준 분석 기간  
+    - 낮은 변동성 (4% 미만): 3개월 주가, 14일 뉴스 → 트렌드 파악을 위한 긴 기간
     """
     try:
         historical_data = stock_info.get('historical_data', [])
         if not historical_data or len(historical_data) < 10:
+            print("📊 데이터 부족으로 기본 기간 사용 (1개월 주가, 7일 뉴스)")
             return default_period, 7
         
         # 최근 10일간의 변동성 계산
@@ -311,14 +317,28 @@ def adjust_analysis_period(stock_info, default_period='1mo'):
         
         # 변동성에 따른 기간 조정
         if volatility > 8:  # 높은 변동성
-            return '2mo', 10  # 더 긴 기간으로 안정성 확보
+            period, news_days = '2mo', 10
+            volatility_level = "높음"
+            reason = "변동성이 높아 안정적 분석을 위해 긴 기간 적용"
         elif volatility > 4:  # 중간 변동성
-            return '1mo', 7   # 기본 기간
+            period, news_days = '1mo', 7
+            volatility_level = "중간"
+            reason = "적정 변동성으로 표준 분석 기간 적용"
         else:  # 낮은 변동성
-            return '3mo', 14  # 더 긴 기간으로 트렌드 파악
+            period, news_days = '3mo', 14
+            volatility_level = "낮음"
+            reason = "변동성이 낮아 장기 트렌드 파악을 위해 긴 기간 적용"
+        
+        print(f"📊 변동성 분석 결과:")
+        print(f"   - 변동성 수준: {volatility_level} ({volatility:.2f}%)")
+        print(f"   - 선택된 기간: {period} 주가, {news_days}일 뉴스")
+        print(f"   - 선택 이유: {reason}")
+        
+        return period, news_days
             
     except Exception as e:
-        print(f"분석 기간 조정 중 오류: {e}")
+        print(f"❌ 변동성 분석 중 오류: {e}")
+        print("📊 기본 기간 사용 (1개월 주가, 7일 뉴스)")
         return default_period, 7
 
 def generate_investment_report(company_name, period='1mo', news_days=7):
@@ -347,9 +367,9 @@ def generate_investment_report(company_name, period='1mo', news_days=7):
         # 1.5. 변동성에 따른 동적 기간 조정
         adjusted_period, adjusted_news_days = adjust_analysis_period(stock_info, period)
         if adjusted_period != period or adjusted_news_days != news_days:
-            print(f"변동성 분석 결과: 기간 조정 ({period} → {adjusted_period}, {news_days}일 → {adjusted_news_days}일)")
             # 조정된 기간으로 다시 주가 데이터 가져오기
             if adjusted_period != period:
+                print("📈 조정된 기간으로 주가 데이터를 다시 수집합니다...")
                 stock_data = get_stock_data(company_name, period=adjusted_period)
                 stock_info = json.loads(stock_data)
             news_days = adjusted_news_days
@@ -521,14 +541,14 @@ def generate_multiple_reports(company_names, period='1mo', news_days=7):
     
     return json.dumps(reports, ensure_ascii=False, indent=2)
 
-def generate_multiple_reports_with_pdf(company_names, period='1mo', news_days=7):
+def generate_multiple_reports_with_pdf(company_names, period='1mo', news_days=None):
     """
     여러 기업의 투자보고서를 한번에 생성하고 각각 PDF로도 저장하는 함수
     
     Parameters:
     - company_names: 회사명 리스트
-    - period: 주가 데이터 기간
-    - news_days: 뉴스 검색 기간
+    - period: 주가 데이터 기간 (변동성에 따라 자동 조정됨)
+    - news_days: 뉴스 검색 기간 (None이면 변동성에 따라 자동 결정)
     
     Returns:
     - 각 기업의 생성된 파일 정보를 포함한 딕셔너리
@@ -542,7 +562,10 @@ def generate_multiple_reports_with_pdf(company_names, period='1mo', news_days=7)
         print(f"{company_name} 처리 중...")
         
         try:
-            result = generate_investment_report_with_pdf(company_name, period, news_days)
+            if news_days is None:
+                result = generate_investment_report_with_pdf(company_name, period)
+            else:
+                result = generate_investment_report_with_pdf(company_name, period, news_days)
             results[company_name] = result
             
             if 'error' not in result:
@@ -571,14 +594,14 @@ def generate_multiple_reports_with_pdf(company_names, period='1mo', news_days=7)
     
     return results
 
-def generate_investment_report_with_pdf(company_name, period='1mo', news_days=7, save_pdf=True):
+def generate_investment_report_with_pdf(company_name, period='1mo', news_days=None, save_pdf=True):
     """
     주가 정보와 뉴스 정보를 기반으로 투자보고서를 생성하고 PDF로도 저장하는 함수
     
     Parameters:
     - company_name: 회사명 (예: '삼성전자')
-    - period: 주가 데이터 기간 (기본값: '1mo')
-    - news_days: 뉴스 검색 기간 (기본값: 7일)
+    - period: 주가 데이터 기간 (기본값: '1mo', 변동성에 따라 자동 조정됨)
+    - news_days: 뉴스 검색 기간 (None이면 변동성에 따라 자동 결정)
     - save_pdf: PDF 파일 생성 여부 (기본값: True)
     
     Returns:
@@ -587,8 +610,11 @@ def generate_investment_report_with_pdf(company_name, period='1mo', news_days=7,
     try:
         print(f"=== {company_name} 투자보고서 생성 중 ===")
         
-        # 1. 투자보고서 생성
-        report_json = generate_investment_report(company_name, period, news_days)
+        # 1. 투자보고서 생성 (news_days가 None이면 변동성 기반 자동 결정)
+        if news_days is None:
+            report_json = generate_investment_report(company_name, period)
+        else:
+            report_json = generate_investment_report(company_name, period, news_days)
         report_data = json.loads(report_json)
         
         if 'error' in report_data:

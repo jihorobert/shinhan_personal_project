@@ -20,8 +20,8 @@ def main():
     print("=== 신한 개인프로젝트: AI 투자보고서 생성 시스템 ===\n")
     
     while True:
-        print("1. 단일 기업 투자보고서 생성 (JSON + PDF, 뉴스 기간: 7-30일)")
-        print("2. 여러 기업 투자보고서 생성 (JSON + PDF, 뉴스 기간: 7-30일)")
+        print("1. 단일 기업 투자보고서 생성 (JSON + PDF, 변동성 기반 자동 기간 설정)")
+        print("2. 여러 기업 투자보고서 생성 (JSON + PDF, 변동성 기반 자동 기간 설정)")
         print("3. 종료")
         
         choice = input("\n선택하세요 (1-3): ").strip()
@@ -29,24 +29,9 @@ def main():
         if choice == '1':
             company_name = input("분석할 회사명을 입력하세요 (예: 삼성전자): ").strip()
             if company_name:
-                # 뉴스 수집 기간 선택
-                while True:
-                    news_period = input("뉴스 수집 기간을 입력하세요 (7-30일, 기본값: 7): ").strip()
-                    if not news_period:  # 빈 입력시 기본값 사용
-                        news_days = 7
-                        break
-                    try:
-                        news_days = int(news_period)
-                        if 7 <= news_days <= 30:
-                            break
-                        else:
-                            print("❌ 뉴스 수집 기간은 7일에서 30일 사이여야 합니다.")
-                    except ValueError:
-                        print("❌ 숫자를 입력해주세요.")
-                
-                print(f"\n{company_name} 투자보고서를 생성합니다... (뉴스 기간: {news_days}일)")
+                print(f"\n{company_name} 투자보고서를 생성합니다... (변동성 기반 자동 기간 설정)")
                 try:
-                    result = generate_investment_report_with_pdf(company_name, news_days=news_days)
+                    result = generate_investment_report_with_pdf(company_name)
                     
                     if 'error' not in result:
                         print(f"✅ JSON 보고서가 {result['json_file']}에 저장되었습니다.")
@@ -61,6 +46,7 @@ def main():
                         print(f"\n📊 {company_name} 투자보고서 요약:")
                         print(f"현재가: {report_data['stock_data']['current_price']}원")
                         print(f"전일대비: {report_data['stock_data']['change']}원 ({report_data['stock_data']['change_percent']}%)")
+                        print(f"분석 기간: {report_data['analysis_period']}")
                         print(f"분석된 뉴스: {report_data['news_count']}개")
                         print("\n" + "="*50)
                     else:
@@ -76,25 +62,10 @@ def main():
             if companies_input:
                 companies = [company.strip() for company in companies_input.split(',')]
                 
-                # 뉴스 수집 기간 선택
-                while True:
-                    news_period = input("뉴스 수집 기간을 입력하세요 (7-30일, 기본값: 7): ").strip()
-                    if not news_period:  # 빈 입력시 기본값 사용
-                        news_days = 7
-                        break
-                    try:
-                        news_days = int(news_period)
-                        if 7 <= news_days <= 30:
-                            break
-                        else:
-                            print("❌ 뉴스 수집 기간은 7일에서 30일 사이여야 합니다.")
-                    except ValueError:
-                        print("❌ 숫자를 입력해주세요.")
-                
-                print(f"\n{len(companies)}개 기업의 투자보고서를 생성합니다... (뉴스 기간: {news_days}일)")
+                print(f"\n{len(companies)}개 기업의 투자보고서를 생성합니다... (각 기업별 변동성 기반 자동 기간 설정)")
                 
                 try:
-                    results = generate_multiple_reports_with_pdf(companies, news_days=news_days)
+                    results = generate_multiple_reports_with_pdf(companies)
                     
                     # 결과 요약 출력
                     successful_count = 0
