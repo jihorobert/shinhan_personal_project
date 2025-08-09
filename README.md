@@ -71,17 +71,13 @@
 
 실제 시스템 작동 과정을 확인하실 수 있습니다:
 
-![Image](https://github.com/user-attachments/assets/56142184-75d2-421d-92d0-29c84aed0bdb)
+https://github.com/user-attachments/assets/f86cbbec-be99-4809-baea-4667f9a59a59
 
 ### PDF 보고서 예시
 
 실제 생성된 현대모비스 투자보고서 PDF 파일:
 
 📄 [현대모비스 투자보고서 PDF 예시](reports/현대모비스_report_20250809_222836.pdf)
-
-<img src="https://github.com/user-attachments/assets/56142184-75d2-421d-92d0-29c84aed0bdb" width="500">
-
-https://github.com/user-attachments/assets/f86cbbec-be99-4809-baea-4667f9a59a59
 
 ## 📊 지원 종목
 
