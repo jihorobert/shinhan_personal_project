@@ -163,28 +163,91 @@ class PDFReportGenerator:
             current_date = dates[-1] if dates else datetime.now()
             ax.scatter([current_date], [current_price], color='red', s=100, zorder=5, label=f'현재가: {current_price:,}원')
             
-            # 미래 전망 라인 (단순한 추세선 기반)
-            if len(prices) >= 5:
-                # 최근 5일 평균 변화율을 기반으로 미래 예측
-                recent_prices = prices[-5:]
-                trend = (recent_prices[-1] - recent_prices[0]) / len(recent_prices)
+            # 미래 전망 라인 (동적 추세 분석)
+            if len(prices) >= 10:
+                # 다중 기간 추세 분석으로 더 정확한 예측
+                short_term_prices = prices[-5:]  # 단기 추세 (5일)
+                medium_term_prices = prices[-15:] if len(prices) >= 15 else prices[-10:]  # 중기 추세
+                long_term_prices = prices[-30:] if len(prices) >= 30 else prices  # 장기 추세
                 
-                # 미래 30일 예측 (단순 선형 추세)
+                # 각 기간별 추세 계산
+                short_trend = (short_term_prices[-1] - short_term_prices[0]) / len(short_term_prices)
+                medium_trend = (medium_term_prices[-1] - medium_term_prices[0]) / len(medium_term_prices)
+                long_trend = (long_term_prices[-1] - long_term_prices[0]) / len(long_term_prices)
+                
+                # 가중 평균으로 최종 추세 결정 (단기 50%, 중기 30%, 장기 20%)
+                weighted_trend = (short_trend * 0.5) + (medium_trend * 0.3) + (long_trend * 0.2)
+                
+                # 추세 강도 계산 (최근 변동성 고려)
+                recent_volatility = np.std(prices[-10:])
+                price_range = max(prices[-10:]) - min(prices[-10:])
+                trend_strength = abs(weighted_trend) / (recent_volatility + 1e-6)  # 0으로 나누기 방지
+                
+                # 동적 추세 조정 - 강한 추세일수록 더 뚜렷하게, 약한 추세는 보수적으로
+                if trend_strength > 0.5:  # 강한 추세
+                    dynamic_trend = weighted_trend * 1.2  # 추세 강화
+                    trend_confidence = 0.8
+                elif trend_strength > 0.2:  # 중간 추세
+                    dynamic_trend = weighted_trend * 1.0  # 원래 추세 유지
+                    trend_confidence = 0.6
+                else:  # 약한 추세
+                    dynamic_trend = weighted_trend * 0.7  # 추세 완화
+                    trend_confidence = 0.4
+                
+                # 미래 30일 예측 (비선형 곡선으로 더 현실적)
                 future_dates = [current_date + timedelta(days=i) for i in range(1, 31)]
-                future_prices = [current_price + (trend * i) for i in range(1, 31)]
+                future_prices = []
                 
-                # 변동성 추가 (실제 주가의 변동성을 반영)
-                price_volatility = np.std(prices[-10:]) if len(prices) >= 10 else np.std(prices)
-                future_upper = [p + price_volatility for p in future_prices]
-                future_lower = [p - price_volatility for p in future_prices]
+                for i in range(1, 31):
+                    # 시간이 지날수록 추세의 영향력 감소 (현실적인 예측)
+                    time_decay = np.exp(-i / 20)  # 20일 반감기
+                    adjusted_trend = dynamic_trend * time_decay
+                    
+                    # 약간의 노이즈 추가로 더 자연스러운 곡선
+                    noise_factor = np.sin(i / 3) * (recent_volatility * 0.1)
+                    predicted_price = current_price + (adjusted_trend * i) + noise_factor
+                    future_prices.append(predicted_price)
                 
-                # 미래 예측선 (점선)
-                ax.plot(future_dates, future_prices, linewidth=2, color='orange', 
-                       linestyle='--', alpha=0.7, label='예상 추세')
+                # 동적 변동성 계산 (추세 강도에 따라 조정)
+                base_volatility = np.std(prices[-20:]) if len(prices) >= 20 else np.std(prices)
+                dynamic_volatility = base_volatility * (1.5 + trend_strength)  # 추세가 강할수록 변동성 증가
                 
-                # 신뢰구간 (반투명 영역)
+                future_upper = [p + dynamic_volatility for p in future_prices]
+                future_lower = [p - dynamic_volatility for p in future_prices]
+                
+                # 추세 방향에 따른 색상 및 스타일 결정
+                if weighted_trend > 0:
+                    trend_color = '#ff4444'  # 상승 추세 - 빨간색
+                    trend_label = f'예상 추세 (상승 {trend_strength:.1f})'
+                    line_style = '-'  # 실선으로 강조
+                elif weighted_trend < 0:
+                    trend_color = '#4444ff'  # 하락 추세 - 파란색
+                    trend_label = f'예상 추세 (하락 {trend_strength:.1f})'
+                    line_style = '-'  # 실선으로 강조
+                else:
+                    trend_color = '#888888'  # 횡보 - 회색
+                    trend_label = '예상 추세 (횡보)'
+                    line_style = '--'  # 점선
+                
+                # 미래 예측선 (동적 색상과 굵기)
+                line_width = 2.5 + (trend_strength * 1.5)  # 추세가 강할수록 굵게
+                ax.plot(future_dates, future_prices, linewidth=line_width, color=trend_color, 
+                       linestyle=line_style, alpha=0.8, label=trend_label)
+                
+                # 추세 방향 화살표 추가 (마지막 지점에)
+                if abs(weighted_trend) > recent_volatility * 0.1:  # 의미있는 추세일 때만
+                    arrow_props = dict(arrowstyle='->', lw=2, color=trend_color)
+                    if weighted_trend > 0:
+                        ax.annotate('', xy=(future_dates[-1], future_prices[-1] + dynamic_volatility * 0.3), 
+                                   xytext=(future_dates[-5], future_prices[-5]), arrowprops=arrow_props)
+                    else:
+                        ax.annotate('', xy=(future_dates[-1], future_prices[-1] - dynamic_volatility * 0.3), 
+                                   xytext=(future_dates[-5], future_prices[-5]), arrowprops=arrow_props)
+                
+                # 신뢰구간 (추세 강도에 따른 투명도)
+                confidence_alpha = 0.1 + (trend_confidence * 0.15)
                 ax.fill_between(future_dates, future_lower, future_upper, 
-                               color='orange', alpha=0.2, label='예상 범위')
+                               color=trend_color, alpha=confidence_alpha, label=f'신뢰구간 ({trend_confidence*100:.0f}%)')
             
             # 이동평균선 추가 (5일, 20일)
             if len(prices) >= 20:
