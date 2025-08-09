@@ -71,7 +71,7 @@
 
 실제 시스템 작동 과정을 확인하실 수 있습니다:
 
-🎥 [시스템 시연 영상](src/frontend/public/example_video.mov)
+![Image](https://github.com/user-attachments/assets/b73ab647-3677-458c-a213-34955fd6e8c6)
 
 ### PDF 보고서 예시
 
