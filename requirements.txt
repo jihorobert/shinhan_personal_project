@@ -18,3 +18,7 @@ numpy==1.26.4
 # PDF 생성
 reportlab==4.0.9
 matplotlib==3.8.2
+
+# 웹 API 서버
+flask==3.0.0
+flask-cors==4.0.0

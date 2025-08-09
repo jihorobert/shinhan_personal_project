@@ -12,6 +12,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 import json
 import os
 from datetime import datetime
+
+# matplotlib 백엔드를 GUI가 아닌 'Agg'로 설정 (멀티스레딩 환경에서 안전)
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib import font_manager
@@ -119,7 +123,6 @@ class PDFReportGenerator:
             company_name = stock_data.get('company_name', '주식')
                 
             # 한글 폰트 설정 (matplotlib용)
-            import matplotlib.pyplot as plt
             import matplotlib.font_manager as fm
             import numpy as np
             from datetime import datetime, timedelta

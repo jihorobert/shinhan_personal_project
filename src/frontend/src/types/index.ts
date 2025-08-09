@@ -87,4 +87,28 @@ export interface MenuItem {
   path: string
   description: string
   isActive: boolean
+}
+
+// AI 투자 보고서 관련 타입
+export interface Company {
+  name: string
+  ticker: string
+}
+
+export interface ReportSummary {
+  current_price: string
+  change: string
+  change_percent: number
+  analysis_period: string
+  news_count: number
+}
+
+export interface ReportResult {
+  success: boolean
+  message: string
+  company_name: string
+  json_file: string
+  pdf_file?: string
+  summary?: ReportSummary
+  timestamp: string
 } 
