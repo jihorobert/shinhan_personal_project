@@ -14,7 +14,7 @@ import {
   FunnelIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { Company, ReportSummary, ReportResult } from '@/types';
+import { Company, ReportResult } from '@/types';
 
 // 업종별 카테고리 정의
 const COMPANY_CATEGORIES: { [key: string]: string[] } = {
@@ -414,7 +414,7 @@ export default function AIInvestmentReport() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-gray-600">현재가:</span>
-                        <span className="ml-2 font-medium">{reportResult.summary.current_price}원</span>
+                        <span className="ml-2 text-gray-600 font-medium">{reportResult.summary.current_price}원</span>
                       </div>
                       <div>
                         <span className="text-gray-600">전일대비:</span>
@@ -428,11 +428,11 @@ export default function AIInvestmentReport() {
                       </div>
                       <div>
                         <span className="text-gray-600">분석 기간:</span>
-                        <span className="ml-2 font-medium">{reportResult.summary.analysis_period}</span>
+                        <span className="ml-2 font-medium text-gray-600">{reportResult.summary.analysis_period}</span>
                       </div>
                       <div>
                         <span className="text-gray-600">분석된 뉴스:</span>
-                        <span className="ml-2 font-medium">{reportResult.summary.news_count}개</span>
+                        <span className="ml-2 font-medium text-gray-600">{reportResult.summary.news_count}개</span>
                       </div>
                     </div>
                   </div>
