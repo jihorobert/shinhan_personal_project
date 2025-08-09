@@ -57,10 +57,4 @@ def get_latest_news(query, from_date, to_date, num_articles=None):
     return result_list
 
 # Example usage
-<<<<<<< HEAD
 # print(get_latest_news('삼성전자', '2025-07-27', '2025-08-02'))
-=======
-if __name__ == "__main__":
-    company_name = input("회사명을 입력하세요: ")
-    print(get_latest_news(company_name, '2025-07-27', '2025-08-02'))
->>>>>>> 75031126ccee83e21527913b2a8d2c6fdbdcab30

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 주식 정보 fetch 모듈
 import requests
 import json
@@ -291,165 +290,105 @@ def main():
             print(f"   출처: {article.get('source', 'N/A')}")
             print()
 
-if __name__ == "__main__":
-    main()
-=======
-# 주가정보 fetch 모듈
-# yfinance api 사용
-# 
-# 주의: yfinance 버전 0.2.65 이상 권장
-# 이전 버전에서 "Failed to get ticker" 또는 "Expecting value" 오류 발생 시
-# pip install yfinance --upgrade --no-cache-dir 실행
-
-import yfinance as yf
-import pandas as pd
-from datetime import datetime, timedelta
-import json
-
-# 한국 주요 기업의 티커 심볼 매핑
+# 한국 주요 기업 딕셔너리 (app.py에서 사용)
 KOREAN_COMPANIES = {
-    '삼성전자': '005930.KS',
-    'SK하이닉스': '000660.KS', 
-    'LG에너지솔루션': '373220.KS',
-    'NAVER': '035420.KS',
-    '카카오': '035720.KS',
-    'LG화학': '051910.KS',
-    '현대차': '005380.KS',
-    '기아': '000270.KS',
-    'POSCO홀딩스': '005490.KS',
-    'KB금융': '105560.KS',
-    '신한지주': '055550.KS',
-    'LG전자': '066570.KS',
-    '삼성바이오로직스': '207940.KS',
-    '현대모비스': '012330.KS',
-    '셀트리온': '068270.KS',
-    'SK텔레콤': '017670.KS',
-    'KT&G': '033780.KS',
-    '한국전력': '015760.KS',
-    '삼성물산': '028260.KS',
-    'LG디스플레이': '034220.KS'
+    '삼성전자': '005930',
+    'SK하이닉스': '000660',
+    'NAVER': '035420',
+    'LG화학': '051910',
+    '삼성SDI': '006400',
+    '카카오': '035720',
+    '삼성바이오로직스': '207940',
+    '셀트리온': '068270',
+    '카카오뱅크': '323410',
+    'LG에너지솔루션': '373220',
+    '현대차': '005380',
+    'SK텔레콤': '017670',
+    'LG전자': '066570',
+    '포스코홀딩스': '005490',
+    '기아': '000270'
 }
 
-def get_ticker_symbol(company_name):
+def get_stock_data(company_name, period='1mo'):
     """
-    한국 기업명을 야후 파이낸스 티커 심볼로 변환
-    """
-    # 정확한 매칭 먼저 시도
-    if company_name in KOREAN_COMPANIES:
-        return KOREAN_COMPANIES[company_name]
-    
-    # 부분 매칭 시도 (예: "삼성" -> "삼성전자")
-    for korean_name, ticker in KOREAN_COMPANIES.items():
-        if company_name in korean_name or korean_name in company_name:
-            return ticker
-    
-    # 매칭되지 않으면 원래 이름 반환 (직접 입력된 티커일 수도 있음)
-    return company_name
-
-def get_stock_data(company_name, period='1mo', interval='1d'):
-    """
-    주식 데이터를 가져오는 함수
+    회사명으로 주식 데이터를 가져오는 래퍼 함수 (analyze.py에서 사용)
     
     Parameters:
     - company_name: 회사명 (예: '삼성전자')
-    - period: 기간 ('1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max')
-    - interval: 간격 ('1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo')
+    - period: 주가 데이터 기간 (기본값: '1mo')
     
     Returns:
-    - JSON 형태의 주가 데이터
-    
-    Note:
-    - yfinance 0.2.65+ 버전에서 안정적으로 동작
-    - 이전 버전에서 오류 발생 시 yfinance 업그레이드 필요
+    - JSON 형태의 주가 데이터 (문자열)
     """
     try:
-        # 티커 심볼 가져오기
-        ticker_symbol = get_ticker_symbol(company_name)
-        print(f"Fetching stock data for: {company_name} ({ticker_symbol})")
+        fetcher = KoreanStockFetcher()
         
-        # 주식 객체 생성
-        stock = yf.Ticker(ticker_symbol)
-        
-        # 주가 데이터 가져오기
-        hist_data = stock.history(period=period, interval=interval)
-        
-        if hist_data.empty:
-            print(f"No data found for {company_name} ({ticker_symbol})")
-            return json.dumps({"error": f"No data found for {company_name}"}, ensure_ascii=False, indent=2)
-        
-        # 기본 정보 가져오기
-        info = stock.info
-        
-        # 최신 주가 정보
-        latest_data = hist_data.iloc[-1]
-        current_price = latest_data['Close']
-        
-        # 전일 대비 변화량 계산
-        if len(hist_data) > 1:
-            prev_close = hist_data.iloc[-2]['Close']
-            change = current_price - prev_close
-            change_percent = (change / prev_close) * 100
+        # 회사명을 심볼로 변환
+        symbol = None
+        if company_name in KOREAN_COMPANIES:
+            symbol = KOREAN_COMPANIES[company_name]
         else:
-            change = 0
-            change_percent = 0
+            # 정확한 회사명이 아닌 경우, 부분 매칭 시도
+            for name, ticker in KOREAN_COMPANIES.items():
+                if company_name in name or name in company_name:
+                    symbol = ticker
+                    company_name = name  # 정확한 회사명으로 업데이트
+                    break
         
-        # 결과 데이터 구성
-        result = {
-            "company_name": company_name,
-            "ticker_symbol": ticker_symbol,
-            "current_price": round(current_price, 2),
-            "change": round(change, 2),
-            "change_percent": round(change_percent, 2),
-            "volume": int(latest_data['Volume']),
-            "high": round(latest_data['High'], 2),
-            "low": round(latest_data['Low'], 2),
-            "open": round(latest_data['Open'], 2),
-            "market_cap": info.get('marketCap', 'N/A'),
-            "pe_ratio": info.get('forwardPE', 'N/A'),
-            "dividend_yield": info.get('dividendYield', 'N/A'),
-            "52_week_high": info.get('fiftyTwoWeekHigh', 'N/A'),
-            "52_week_low": info.get('fiftyTwoWeekLow', 'N/A'),
-            "historical_data": []
-        }
+        if not symbol:
+            return json.dumps({
+                "error": f"지원되지 않는 기업입니다: {company_name}",
+                "supported_companies": list(KOREAN_COMPANIES.keys())
+            }, ensure_ascii=False)
         
-        # 히스토리컬 데이터 추가 (전체 기간 데이터)
-        # 차트 분석을 위해 더 많은 데이터 제공
-        recent_data = hist_data
-        for date, row in recent_data.iterrows():
-            result["historical_data"].append({
-                "date": date.strftime('%Y-%m-%d'),
-                "open": round(row['Open'], 2),
-                "high": round(row['High'], 2),
-                "low": round(row['Low'], 2),
-                "close": round(row['Close'], 2),
-                "volume": int(row['Volume'])
-            })
+        # Yahoo Finance에서 주가 정보 가져오기
+        stock_info = fetcher.get_stock_price_yahoo(symbol, period)
         
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        if 'error' in stock_info:
+            return json.dumps(stock_info, ensure_ascii=False)
+        
+        # 히스토리컬 데이터 추가 (기술적 분석을 위해)
+        try:
+            import yfinance as yf
+            ticker = yf.Ticker(f"{symbol}.KS")
+            hist = ticker.history(period=period)
+            
+            if not hist.empty:
+                # 최신 데이터부터 정렬 (최신이 첫 번째)
+                hist_data = []
+                for date, row in hist.iterrows():
+                    hist_data.append({
+                        'date': date.strftime('%Y-%m-%d'),
+                        'open': float(row['Open']),
+                        'high': float(row['High']),
+                        'low': float(row['Low']),
+                        'close': float(row['Close']),
+                        'volume': int(row['Volume'])
+                    })
+                
+                # 최신 데이터가 첫 번째가 되도록 역순 정렬
+                hist_data.reverse()
+                stock_info['historical_data'] = hist_data
+                
+                # 52주 최고가/최저가 계산
+                if len(hist_data) > 0:
+                    prices = [data['close'] for data in hist_data]
+                    stock_info['52_week_high'] = max(prices)
+                    stock_info['52_week_low'] = min(prices)
+                
+        except Exception as e:
+            print(f"히스토리컬 데이터 추가 중 오류: {e}")
+            stock_info['historical_data'] = []
+        
+        # 회사명 추가
+        stock_info['company_name'] = company_name
+        
+        return json.dumps(stock_info, ensure_ascii=False, indent=2)
         
     except Exception as e:
-        print(f"Error fetching stock data for {company_name}: {str(e)}")
-        return json.dumps({"error": f"Error fetching data: {str(e)}"}, ensure_ascii=False, indent=2)
+        return json.dumps({
+            "error": f"주가 데이터 조회 중 오류 발생: {str(e)}"
+        }, ensure_ascii=False)
 
-def get_multiple_stocks_data(company_names, period='1mo'):
-    """
-    여러 기업의 주가 데이터를 한번에 가져오는 함수
-    
-    Parameters:
-    - company_names: 회사명 리스트 (예: ['삼성전자', 'SK하이닉스'])
-    - period: 기간
-    
-    Returns:
-    - 각 기업의 주가 데이터를 포함한 딕셔너리
-    """
-    results = {}
-    for company_name in company_names:
-        results[company_name] = json.loads(get_stock_data(company_name, period))
-    
-    return json.dumps(results, ensure_ascii=False, indent=2)
-
-# Example usage
 if __name__ == "__main__":
-    company_name = input("회사명을 입력하세요: ")
-    print(get_stock_data(company_name))
->>>>>>> 75031126ccee83e21527913b2a8d2c6fdbdcab30
+    main()

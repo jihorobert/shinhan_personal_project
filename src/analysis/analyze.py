@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # 프로젝트 루트 경로 추가
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from fetch.stock_fetcher import get_stock_data
+from fetch.stock_fetcher import get_stock_data, KoreanStockFetcher
 from fetch.news_fetcher import get_latest_news
 from report.pdf_generator import generate_pdf_report_from_data
 
